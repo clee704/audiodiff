@@ -81,8 +81,11 @@ def tagdiff(p1, p2, verbose=False):
 
 def binarydiff(p1, p2, verbose=False):
     "Compare the content of two files."
-    with open(p1.path) as f1, open(p2.path) as f2:
-        diff = f1.read() != f2.read()
+    # Using nested with statements to workaround the sphinx issue
+    # https://bitbucket.org/birkenfeld/sphinx/issue/1102
+    with open(p1.path) as f1:
+        with open(p2.path) as f2:
+            diff = f1.read() != f2.read()
     if diff:
         print 'Binary file {0} and {1} differ'.format(f1.name, f2.name)
     elif verbose:
