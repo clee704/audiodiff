@@ -60,9 +60,9 @@ def _recursivediff_wrapped(p1, p2, verbose=False, skip_streams=False):
             entries2 = [Path(e, hideext=True) for e in sorted(p2.listdir())]
             for entry1, entry2 in diffzip(entries1, entries2):
                 if entry1 is None:
-                    print('Only in {0}: {1}'.format(p2.path, entry2))
+                    print('Only in {0}: {1}'.format(p2.path, entry2.path))
                 elif entry2 is None:
-                    print('Only in {0}: {1}'.format(p1.path, entry1))
+                    print('Only in {0}: {1}'.format(p1.path, entry1.path))
                 else:
                     recursivediff(p1.join(entry1), p2.join(entry2), verbose, skip_streams)
         else:
