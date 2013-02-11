@@ -41,7 +41,7 @@ def recursivediff(p1, p2, verbose=False):
     try:
         _recursivediff_wrapped(p1, p2, verbose)
     except Exception as e:
-        print('An error occurred during processing {0} and {1}'.format(p1, p2))
+        print('An error occurred during processing {0} and {1}'.format(p1.path, p2.path))
         traceback.print_exc()
 
 
@@ -50,22 +50,22 @@ def _recursivediff_wrapped(p1, p2, verbose=False):
         if p2.isfile():
             filediff(p1, p2, verbose)
         else:
-            print('{0} is a file and {1} is not'.format(p1, p2))
+            print('{0} is a file and {1} is not'.format(p1.path, p2.path))
     elif p1.isdir():
         if p2.isdir():
             entries1 = [Path(e, hideext=True) for e in sorted(p1.listdir())]
             entries2 = [Path(e, hideext=True) for e in sorted(p2.listdir())]
             for entry1, entry2 in diffzip(entries1, entries2):
                 if entry1 is None:
-                    print('Only in {0}: {1}'.format(p2, entry2))
+                    print('Only in {0}: {1}'.format(p2.path, entry2))
                 elif entry2 is None:
-                    print('Only in {0}: {1}'.format(p1, entry1))
+                    print('Only in {0}: {1}'.format(p1.path, entry1))
                 else:
                     recursivediff(p1.join(entry1), p2.join(entry2), verbose)
         else:
-            print('{0} is a directory and {1} is not'.format(p1, p2))
+            print('{0} is a directory and {1} is not'.format(p1.path, p2.path))
     else:
-        print('Either {0} or {1} is not a file or a directory'.format(p1, p2))
+        print('Either {0} or {1} is not a file or a directory'.format(p1.path, p2.path))
 
 
 def filediff(p1, p2, verbose=False):
