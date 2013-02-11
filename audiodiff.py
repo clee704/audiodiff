@@ -251,9 +251,10 @@ class MP4Wrapper(object):
     def _lookup(self, key):
         m = self._match_freeform(key)
         if m:
-            freeform_key = m.group(1)
-            self._freeform_map[freeform_key.lower()] = freeform_key
-            return freeform_key.lower()
+            freeform_name = m.group(1)
+            public_key = freeform_name.lower()
+            self._freeform_map[public_key] = freeform_name
+            return public_key
         else:
             return self.MAP.get(key)
 
