@@ -12,6 +12,12 @@ import mutagen.mp4
 __version__ = '0.0.1'
 
 
+#: Files with these extensions will treated as audio files.
+#: Their audio streams and tags are compared if their filenames
+#: match.
+AUDIOFILE_EXTENSIONS = ['flac', 'm4a']
+
+
 def main_func():
     parser = argparse.ArgumentParser()
     parser.add_argument('files', metavar='FILE', nargs=2, type=Path,
@@ -34,7 +40,7 @@ def recursivediff(p1, p2, verbose=False):
 def _recursivediff_wrapped(p1, p2, verbose=False):
     if p1.isfile():
         if p2.isfile():
-            diff(p1, p2, verbose)
+            filediff(p1, p2, verbose)
         else:
             print '{0} is a file and {1} is not'.format(p1, p2)
     elif p1.isdir():
@@ -54,7 +60,7 @@ def _recursivediff_wrapped(p1, p2, verbose=False):
         print 'Either {0} or {1} is not a file or a directory'.format(p1, p2)
 
 
-def diff(p1, p2, verbose=False):
+def filediff(p1, p2, verbose=False):
     "Compare files given by paths p1 and p2."
     if p1.isaudiofile() and p2.isaudiofile():
         streamdiff(p1, p2, verbose)
@@ -69,9 +75,9 @@ def streamdiff(p1, p2, verbose=False):
     f2 = audiotools.open(p2.path)
     diff = not audiotools.pcm_cmp(f1.to_pcm(), f2.to_pcm())
     if diff:
-        print 'Audio streams in {0} and {1} differ'.format(f1.filename, f2.filename)
+        print 'Audio streams in {0} and {1} differ'.format(p1.path, p2.path)
     elif verbose:
-        print 'Audio streams in {0} and {1} are equal'.format(f1.filename, f2.filename)
+        print 'Audio streams in {0} and {1} are equal'.format(p1.path, p2.path)
 
 
 def tagdiff(p1, p2, verbose=False):
@@ -87,16 +93,16 @@ def binarydiff(p1, p2, verbose=False):
         with open(p2.path) as f2:
             diff = f1.read() != f2.read()
     if diff:
-        print 'Binary file {0} and {1} differ'.format(f1.name, f2.name)
+        print 'Binary file {0} and {1} differ'.format(p1.path, p2.path)
     elif verbose:
-        print 'Binary file {0} and {1} are equal'.format(f1.name, f2.name)
+        print 'Binary file {0} and {1} are equal'.format(p1.path, p2.path)
 
 
 def diffzip(list1, list2):
     """
     Returns a list of tuples that aggregates elements from each list.
-    Each list must be sorted so that for every pair of adjacent elements
-    (``a``, ``b``), ``a <= b``.
+    Each list must be sorted so that ``a <= b`` for every pair of
+    adjacent elements (``a``, ``b``).
 
     Examples:
 
@@ -146,14 +152,11 @@ class Path(object):
 
     """
 
-    #: File extensions that is ignored when comparing directories
-    AUDIOFILE_EXTENSIONS = ['flac', 'm4a']
-
     def __init__(self, path, hideext=False):
         self.path = path
         self._path_without_ext = path
         self.ext = None
-        for ext in self.AUDIOFILE_EXTENSIONS:
+        for ext in AUDIOFILE_EXTENSIONS:
             if path.endswith(ext):
                 self._path_without_ext = path[:-len(ext) - 1]
                 self.ext = ext
