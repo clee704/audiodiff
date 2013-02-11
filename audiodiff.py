@@ -30,9 +30,9 @@ AUDIOFILE_EXTENSIONS = ['flac', 'm4a']
 def main_func():
     parser = argparse.ArgumentParser()
     parser.add_argument('files', metavar='FILE', nargs=2, type=Path,
-        help='files or directories to compare. When comparing two directories, audio files with the same name (extensions may differ) will be compared.')
+        help='Files or directories to compare. When comparing two directories, audio files with the same name (extensions may differ) will be compared.')
     parser.add_argument('-v', '--verbose', action='store_true',
-        help='verbosely list files processed')
+        help='Verbosely list files processed')
     parser.add_argument('-s', '--skip-streams', action='store_true',
         help='Skip comparing audio streams. This is useful since the comparison is very slow')
     args = parser.parse_args()
