@@ -113,9 +113,9 @@ def binarydiff(p1, p2, verbose=False):
         with open(p2.path) as f2:
             diff = f1.read() != f2.read()
     if diff:
-        print('Binary file {0} and {1} differ'.format(p1.path, p2.path))
+        print('Binary files {0} and {1} differ'.format(p1.path, p2.path))
     elif verbose:
-        print('Binary file {0} and {1} are equal'.format(p1.path, p2.path))
+        print('Binary files {0} and {1} are equal'.format(p1.path, p2.path))
 
 
 def diffzip(list1, list2):
