@@ -10,6 +10,7 @@ import traceback
 import audiotools
 from mutagen.flac import FLAC
 from mutagen.mp4 import MP4
+from mutagen.mp3 import MP3
 
 if sys.stdout.isatty():
     from termcolor import colored, cprint
@@ -24,7 +25,7 @@ __version__ = '0.0.1'
 #: Files with these extensions will treated as audio files.
 #: Their audio streams and tags are compared if their filenames
 #: match.
-AUDIOFILE_EXTENSIONS = ['flac', 'm4a']
+AUDIOFILE_EXTENSIONS = ['flac', 'm4a', 'mp3']
 
 
 def main_func():
@@ -169,28 +170,90 @@ def get_tags(p):
         return FLACWrapper(FLAC(p.path))
     elif p.ext == 'm4a':
         return MP4Wrapper(MP4(p.path))
+    elif p.ext == 'mp3':
+        return MP3Wrapper(MP3(p.path))
     else:
         raise NotImplementedError()
 
 
-class FLACWrapper(object):
+class TagsWrapper(object):
 
-    def __init__(self, flac):
-        self._flac = flac
-        self._original_keys = flac.keys()
-        self._keys = self._original_keys + ['pictures']
+    def __init__(self, tags):
+        self._tags = tags
+        self._original_keys = tags.keys()
+        self._keys = self._build_keys()
 
     def keys(self):
         return self._keys
 
     def __getitem__(self, key):
+        return self._tags[key]
+
+    def _build_keys(self):
+        raise NotImplementedError()
+
+
+class FLACWrapper(TagsWrapper):
+
+    def _build_keys(self):
+        return self._original_keys + ['pictures']
+
+    def __getitem__(self, key):
         if key == 'pictures':
-            return [p.data for p in self._flac.pictures]
+            return [p.data for p in self._tags.pictures]
         else:
-            return self._flac[key]
+            return super(FLACWrapper, self).__getitem__(key)
 
 
-class MP4Wrapper(object):
+class FreeformTagsWrapper(TagsWrapper):
+
+    def __init__(self, tags):
+        self._freeform_map = {}
+        super(FreeformTagsWrapper, self).__init__(tags)
+        INV_MAP = {}
+        for k, v in self.MAP.items():
+            if isinstance(v, tuple):
+                for i, w in enumerate(v):
+                    INV_MAP[w] = (k, i)
+            else:
+                INV_MAP[v] = k
+        self.INV_MAP = INV_MAP
+
+    def _build_keys(self):
+        keys = []
+        for key in self._original_keys:
+            rv = self._lookup(key)
+            if not rv:
+                continue
+            if isinstance(rv, tuple):
+                keys.extend(rv)
+            else:
+                keys.append(rv)
+        return keys
+
+    def _lookup(self, original_key):
+        m = self._match_freeform(original_key)
+        if m:
+            freeform_name = m.group(1)
+            key = freeform_name.lower()
+            self._freeform_map[key] = freeform_name
+            return key
+        else:
+            return self.MAP.get(original_key)
+
+    def _reverselookup(self, key):
+        derived_keys = [self.INV_MAP.get(key, key),
+            self.FREEFORM_FORMAT.format(self._freeform_map.get(key, key))]
+        for k in derived_keys:
+            if k in self._original_keys:
+                return k
+        return derived_keys[0]
+
+    def _match_freeform(self, key):
+        return re.match(self.FREEFORM_PATTERN, key)
+
+
+class MP4Wrapper(FreeformTagsWrapper):
 
     MAP = {
         '\xa9nam': 'title',
@@ -213,61 +276,66 @@ class MP4Wrapper(object):
         'trkn': ('tracknumber', 'tracktotal'),
         'disk': ('discnumber', 'disctotal'),
     }
-    INV_MAP = {}
-    for k, v in MAP.items():
-        if isinstance(v, tuple):
-            for i, w in enumerate(v):
-                INV_MAP[w] = (k, i)
+    FREEFORM_PATTERN = '----:com.apple.iTunes:(.*)'
+    FREEFORM_FORMAT = '----:com.apple.iTunes:{0}'
+
+    def __getitem__(self, key):
+        original_key = self._reverselookup(key)
+        if isinstance(original_key, tuple):
+            return [unicode(t[original_key[1]]) for t in self._tags[original_key[0]]]
+        elif self._match_freeform(original_key):
+            return [s.decode('UTF-8', 'replace') for s in self._tags[original_key]]
         else:
-            INV_MAP[v] = k
+            return self._tags[original_key]
 
-    def __init__(self, mp4):
-        self._mp4 = mp4
-        self._original_keys = mp4.keys()
-        self._freeform_map = {}
-        keys = []
-        for key in self._original_keys:
-            rv = self._lookup(key)
-            if not rv:
-                continue
-            if isinstance(rv, tuple):
-                keys.extend(rv)
-            else:
-                keys.append(rv)
-        self._public_keys = keys
 
-    def keys(self):
-        return self._public_keys
+class MP3Wrapper(FreeformTagsWrapper):
+
+    MAP = {
+        'TALB': 'album',
+        'TBPM': 'bpm',
+        'TCMP': 'compilation', # iTunes extension
+        'TCOM': 'composer',
+        'TCON': 'genre',
+        'TCOP': 'copyright',
+        'TDRC': 'date',
+        'TENC': 'encodedby',
+        'TEXT': 'lyricist',
+        'TLEN': 'length',
+        'TMED': 'media',
+        'TMOO': 'mood',
+        'TIT2': 'title',
+        'TIT3': 'version',
+        'TPE1': 'artist',
+        'TPE2': 'performer',
+        'TPE3': 'conductor',
+        'TPE4': 'arranger',
+        'TPOS': ('discnumber', 'disctotal'),
+        'TPUB': 'organization',
+        'TRCK': ('tracknumber', 'tracktotal'),
+        'TOLY': 'author',
+        'TSO2': 'albumartistsort', # iTunes extension
+        'TSOA': 'albumsort',
+        'TSOC': 'composersort', # iTunes extension
+        'TSOP': 'artistsort',
+        'TSOT': 'titlesort',
+        'TSRC': 'isrc',
+        'TSST': 'discsubtitle',
+        'APIC:': 'pictures',
+    }
+    FREEFORM_PATTERN = 'TXXX:(.*)'
+    FREEFORM_FORMAT = 'TXXX:{0}'
 
     def __getitem__(self, public_key):
         key = self._reverselookup(public_key)
         if isinstance(key, tuple):
-            return [unicode(t[key[1]]) for t in self._mp4[key[0]]]
-        elif self._match_freeform(key):
-            return [s.decode('UTF-8', 'replace') for s in self._mp4[key]]
+            return [t.split('/')[key[1]] for t in self._tags[key[0]]]
+        elif key == 'APIC:':
+            return [self._tags[key].data]
+        elif key == 'TDRC':
+            return [s.text for s in self._tags[key].text]
         else:
-            return self._mp4[key]
-
-    def _lookup(self, key):
-        m = self._match_freeform(key)
-        if m:
-            freeform_name = m.group(1)
-            public_key = freeform_name.lower()
-            self._freeform_map[public_key] = freeform_name
-            return public_key
-        else:
-            return self.MAP.get(key)
-
-    def _reverselookup(self, public_key):
-        derived_keys = [self.INV_MAP.get(public_key, public_key),
-            '----:com.apple.iTunes:{0}'.format(self._freeform_map.get(public_key, public_key))]
-        for k in derived_keys:
-            if k in self._original_keys:
-                return k
-        return derived_keys[0]
-
-    def _match_freeform(self, key):
-        return re.match('----:com.apple.iTunes:(.*)', key)
+            return self._tags[key].text
 
 
 def dict_cmp(dict1, dict2):
