@@ -92,8 +92,8 @@ def tagdiff(p1, p2, verbose=False):
     "Compares the metadata of two files."
     tags1 = get_tags(p1)
     tags2 = get_tags(p2)
-    diff, data = dict_cmp(tags1, tags2)
-    if diff:
+    same, data = dict_cmp(tags1, tags2)
+    if not same:
         colors = {'-': 'red', '+': 'green', ' ': None}
         cprint(colored('--- {0}'.format(p1.path), colors['-']))
         cprint(colored('+++ {0}'.format(p2.path), colors['+']))
