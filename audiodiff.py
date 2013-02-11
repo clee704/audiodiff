@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 from __future__ import print_function
 from operator import itemgetter
-from StringIO import StringIO
 import argparse
 import os
 import sys
