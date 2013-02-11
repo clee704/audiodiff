@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 from __future__ import print_function
+from operator import itemgetter
 from StringIO import StringIO
 import argparse
 import os
@@ -7,8 +8,8 @@ import sys
 import traceback
 
 import audiotools
-import mutagen.flac
-import mutagen.mp4
+from mutagen.flac import FLAC
+from mutagen.easymp4 import EasyMP4
 
 if sys.stdout.isatty():
     from termcolor import colored, cprint
@@ -89,8 +90,20 @@ def streamdiff(p1, p2, verbose=False):
 
 
 def tagdiff(p1, p2, verbose=False):
-    "Compare the metadata of two files."
-    pass
+    "Compares the metadata of two files."
+    tags1 = get_tags(p1)
+    tags2 = get_tags(p2)
+    diff, data = dict_cmp(tags1, tags2)
+    if diff:
+        colors = {'-': 'red', '+': 'green', ' ': None}
+        cprint(colored('--- {0}'.format(p1.path), colors['-']))
+        cprint(colored('+++ {0}'.format(p2.path), colors['+']))
+        for sign, key, value in data:
+            if sign == ' ' and not verbose:
+                continue
+            cprint(colored('{0}{1}: {2}'.format(sign, key, value), colors[sign]))
+    elif verbose:
+        print('Tags in {0} and {1} are equal'.format(p1.path, p2.path))
 
 
 def binarydiff(p1, p2, verbose=False):
@@ -142,6 +155,49 @@ def diffzip(list1, list2):
         rv.append((None, list2[j]))
         j += 1
     return rv
+
+
+def get_tags(p):
+    "Returns a dictionary of tags in the audio file given by a path p."
+    if p.ext == 'flac':
+        return FLAC(p.path)
+    elif p.ext == 'm4a':
+        return EasyMP4(p.path)
+    else:
+        raise NotImplementedError()
+
+
+def dict_cmp(dict1, dict2):
+    """
+    Compares two dictionary-like objects and returns a tuple. The first
+    item of the tuple is *True* if the two objects have the same set of
+    keys and values, otherwise *False*. The second item is a list
+    of tuples (*sign*, *key*, *value*). *sign* is '-' if the key is present
+    in the first object but not in the second, or the key is present in
+    both objects but the values differ. A '+' sign means the opposite.
+    A ' ' sign means the key and value are present in both objects.
+
+    Examples:
+
+    >>> dict_cmp({'a': 1, 'b': 2, 'c': 3}, {'b': 2, 'c': 5, 'd': 7})
+    (False, [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)])
+
+    """
+    keys1 = set(dict1.keys())
+    keys2 = set(dict2.keys())
+    data = []
+    for key in keys1 - keys2:
+        data.append(('-', key, dict1[key]))
+    for key in keys2 - keys1:
+        data.append(('+', key, dict2[key]))
+    for key in keys1 & keys2:
+        if dict1[key] != dict2[key]:
+            data.append(('-', key, dict1[key]))
+            data.append(('+', key, dict2[key]))
+        else:
+            data.append((' ', key, dict1[key]))
+    data.sort(key=itemgetter(1))
+    return not any(t[0] != ' ' for t in data), data
 
 
 class Path(object):

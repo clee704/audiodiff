@@ -25,3 +25,19 @@ def test_path(path, path_without_ext):
     p = audiodiff.Path(path)
     p.hideext()
     assert str(p) == path_without_ext
+
+
+@pytest.mark.parametrize(('dict1', 'dict2', 'rv'), [
+    ({}, {}, (True, [])),
+    ({'a': 1}, {}, (False, [('-', 'a', 1)])),
+    ({}, {'a': 1}, (False, [('+', 'a', 1)])),
+    ({'a': 1, 'b': 2, 'c': 3},
+     {'b': 2, 'c': 5, 'd': 7},
+     (False, [('-', 'a', 1),
+              (' ', 'b', 2),
+              ('-', 'c', 3),
+              ('+', 'c', 5),
+              ('+', 'd', 7)])),
+])
+def test_dict_cmp(dict1, dict2, rv):
+    assert audiodiff.dict_cmp(dict1, dict2) == rv
