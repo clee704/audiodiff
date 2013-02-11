@@ -3,12 +3,13 @@ from __future__ import print_function
 from operator import itemgetter
 import argparse
 import os
+import re
 import sys
 import traceback
 
 import audiotools
 from mutagen.flac import FLAC
-from mutagen.easymp4 import EasyMP4
+from mutagen.mp4 import MP4
 
 if sys.stdout.isatty():
     from termcolor import colored, cprint
@@ -162,11 +163,105 @@ def diffzip(list1, list2):
 def get_tags(p):
     "Returns a dictionary of tags in the audio file given by a path p."
     if p.ext == 'flac':
-        return FLAC(p.path)
+        return FLACWrapper(FLAC(p.path))
     elif p.ext == 'm4a':
-        return EasyMP4(p.path)
+        return MP4Wrapper(MP4(p.path))
     else:
         raise NotImplementedError()
+
+
+class FLACWrapper(object):
+
+    def __init__(self, flac):
+        self._flac = flac
+        self._original_keys = flac.keys()
+        self._keys = self._original_keys + ['pictures']
+
+    def keys(self):
+        return self._keys
+
+    def __getitem__(self, key):
+        if key == 'pictures':
+            return [p.data for p in self._flac.pictures]
+        else:
+            return self._flac[key]
+
+
+class MP4Wrapper(object):
+
+    MAP = {
+        '\xa9nam': 'title',
+        '\xa9alb': 'album',
+        '\xa9ART': 'artist',
+        'aART': 'albumartist',
+        '\xa9wrt': 'composer',
+        '\xa9day': 'date',
+        '\xa9cmt': 'comment',
+        'desc': 'description',
+        '\xa9grp': 'grouping',
+        '\xa9gen': 'genre',
+        'cprt': 'copyright',
+        'soal': 'albumsort',
+        'soaa': 'albumartistsort',
+        'soar': 'artistsort',
+        'sonm': 'titlesort',
+        'soco': 'composersort',
+        'covr': 'pictures',
+        'trkn': ('tracknumber', 'tracktotal'),
+        'disk': ('discnumber', 'disctotal'),
+    }
+    INV_MAP = {}
+    for k, v in MAP.items():
+        if isinstance(v, tuple):
+            for i, w in enumerate(v):
+                INV_MAP[w] = (k, i)
+        else:
+            INV_MAP[v] = k
+
+    def __init__(self, mp4):
+        self._mp4 = mp4
+        self._original_keys = mp4.keys()
+        keys = []
+        for key in self._original_keys:
+            rv = self._lookup(key)
+            if not rv:
+                continue
+            if isinstance(rv, tuple):
+                keys.extend(rv)
+            else:
+                keys.append(rv)
+        self._public_keys = keys
+
+    def keys(self):
+        return self._public_keys
+
+    def __getitem__(self, public_key):
+        key = self._reverselookup(public_key)
+        if isinstance(key, tuple):
+            return [unicode(t[key[1]]) for t in self._mp4[key[0]]]
+        elif self._match_freeform(key):
+            return [s.decode('UTF-8', 'replace') for s in self._mp4[key]]
+        else:
+            return self._mp4[key]
+
+    def _lookup(self, key):
+        m = self._match_freeform(key)
+        if m:
+            return m.group(1).lower()
+        else:
+            return self.MAP.get(key)
+
+    def _reverselookup(self, public_key):
+        derived_keys = [self.INV_MAP.get(public_key, public_key),
+            '----:com.apple.iTunes:{0}'.format(public_key),
+            '----:com.apple.iTunes:{0}'.format(public_key.upper())]
+        for k in derived_keys:
+            if k in self._original_keys:
+                return k
+        return derived_keys[0]
+
+    def _match_freeform(self, key):
+        return re.match('----:com.apple.iTunes:(.*)', key)
 
 
 def dict_cmp(dict1, dict2):
