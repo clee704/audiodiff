@@ -1,6 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 import pytest
 
-from .context import audiodiff
+import audiodiff
 
 
 @pytest.mark.parametrize(('list1', 'list2', 'rv'), [
