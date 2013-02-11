@@ -100,6 +100,9 @@ def tagdiff(p1, p2, verbose=False):
         for sign, key, value in data:
             if sign == ' ' and not verbose:
                 continue
+            value = str(value)
+            if len(value) > 100:
+                value = value[:92] + '...' + value[-5:]
             cprint(colored('{0}{1}: {2}'.format(sign, key, value), colors[sign]))
     elif verbose:
         print('Tags in {0} and {1} are equal'.format(p1.path, p2.path))
