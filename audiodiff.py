@@ -224,6 +224,7 @@ class MP4Wrapper(object):
     def __init__(self, mp4):
         self._mp4 = mp4
         self._original_keys = mp4.keys()
+        self._freeform_map = {}
         keys = []
         for key in self._original_keys:
             rv = self._lookup(key)
@@ -250,14 +251,15 @@ class MP4Wrapper(object):
     def _lookup(self, key):
         m = self._match_freeform(key)
         if m:
-            return m.group(1).lower()
+            freeform_key = m.group(1)
+            self._freeform_map[freeform_key.lower()] = freeform_key
+            return freeform_key.lower()
         else:
             return self.MAP.get(key)
 
     def _reverselookup(self, public_key):
         derived_keys = [self.INV_MAP.get(public_key, public_key),
-            '----:com.apple.iTunes:{0}'.format(public_key),
-            '----:com.apple.iTunes:{0}'.format(public_key.upper())]
+            '----:com.apple.iTunes:{0}'.format(self._freeform_map.get(public_key, public_key))]
         for k in derived_keys:
             if k in self._original_keys:
                 return k
