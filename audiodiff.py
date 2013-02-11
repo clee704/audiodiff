@@ -37,7 +37,7 @@ def main_func():
 
 
 def recursivediff(p1, p2, verbose=False):
-    "Compare paths p1 and p2 recursively."
+    "Compares paths p1 and p2 recursively."
     try:
         _recursivediff_wrapped(p1, p2, verbose)
     except Exception as e:
@@ -69,7 +69,7 @@ def _recursivediff_wrapped(p1, p2, verbose=False):
 
 
 def filediff(p1, p2, verbose=False):
-    "Compare files given by paths p1 and p2."
+    "Compares files given by paths p1 and p2."
     if p1.isaudiofile() and p2.isaudiofile():
         streamdiff(p1, p2, verbose)
         tagdiff(p1, p2, verbose)
@@ -78,7 +78,7 @@ def filediff(p1, p2, verbose=False):
 
 
 def streamdiff(p1, p2, verbose=False):
-    "Compare the audio streams in two files."
+    "Compares the audio streams in two files."
     f1 = audiotools.open(p1.path)
     f2 = audiotools.open(p2.path)
     diff = not audiotools.pcm_cmp(f1.to_pcm(), f2.to_pcm())
@@ -94,7 +94,7 @@ def tagdiff(p1, p2, verbose=False):
 
 
 def binarydiff(p1, p2, verbose=False):
-    "Compare the content of two files."
+    "Compares the content of two files."
     # Using nested with statements to workaround the sphinx issue
     # https://bitbucket.org/birkenfeld/sphinx/issue/1102
     with open(p1.path) as f1:
@@ -171,31 +171,31 @@ class Path(object):
         self._exthidden = hideext
 
     def isaudiofile(self):
-        "Return *True* if the path ends with :const:`AUDIOFILE_EXTENSIONS`."
+        "Returns *True* if the path ends with :const:`AUDIOFILE_EXTENSIONS`."
         return self.ext is not None
 
     def hideext(self):
-        "Hide the audio file extension."
+        "Hides the audio file extension."
         self._exthidden = True
 
     def showext(self):
-        "Show the audio file extension."
+        "Shows the audio file extension."
         self._exthidden = False
 
     def isfile(self):
-        "Return *True* if the path is an existing regular file."
+        "Returns *True* if the path is an existing regular file."
         return os.path.isfile(self.path)
 
     def isdir(self):
-        "Return *True* if the path is an existing directory."
+        "Returns *True* if the path is an existing directory."
         return os.path.isdir(self.path)
 
     def join(self, *paths):
-        "Join one or more path components intelligently."
+        "Joins one or more path components intelligently."
         return Path(os.path.join(self.path, *(p.path for p in paths)))
 
     def listdir(self):
-        "Return a list containing the names of the entries in the the path."
+        "Returns a list containing the names of the entries in the the path."
         return os.listdir(self.path)
 
     def __str__(self):
