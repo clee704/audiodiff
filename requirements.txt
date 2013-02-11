@@ -5,3 +5,4 @@ docutils==0.10
 mutagen==1.21
 py==1.4.12
 pytest==2.3.4
+termcolor==1.1.0

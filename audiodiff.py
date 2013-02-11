@@ -1,12 +1,20 @@
 #! /usr/bin/env python
+from __future__ import print_function
 from StringIO import StringIO
 import argparse
 import os
+import sys
 import traceback
 
 import audiotools
 import mutagen.flac
 import mutagen.mp4
+
+if sys.stdout.isatty():
+    from termcolor import colored, cprint
+else:
+    colored = lambda *args: args[0]
+    cprint = print
 
 
 __version__ = '0.0.1'
@@ -33,7 +41,7 @@ def recursivediff(p1, p2, verbose=False):
     try:
         _recursivediff_wrapped(p1, p2, verbose)
     except Exception as e:
-        print 'An error occurred during processing {0} and {1}'.format(p1, p2)
+        print('An error occurred during processing {0} and {1}'.format(p1, p2))
         traceback.print_exc()
 
 
@@ -42,22 +50,22 @@ def _recursivediff_wrapped(p1, p2, verbose=False):
         if p2.isfile():
             filediff(p1, p2, verbose)
         else:
-            print '{0} is a file and {1} is not'.format(p1, p2)
+            print('{0} is a file and {1} is not'.format(p1, p2))
     elif p1.isdir():
         if p2.isdir():
             entries1 = [Path(e, hideext=True) for e in sorted(p1.listdir())]
             entries2 = [Path(e, hideext=True) for e in sorted(p2.listdir())]
             for entry1, entry2 in diffzip(entries1, entries2):
                 if entry1 is None:
-                    print 'Only in {0}: {1}'.format(p2, entry2)
+                    print('Only in {0}: {1}'.format(p2, entry2))
                 elif entry2 is None:
-                    print 'Only in {0}: {1}'.format(p1, entry1)
+                    print('Only in {0}: {1}'.format(p1, entry1))
                 else:
                     recursivediff(p1.join(entry1), p2.join(entry2), verbose)
         else:
-            print '{0} is a directory and {1} is not'.format(p1, p2)
+            print('{0} is a directory and {1} is not'.format(p1, p2))
     else:
-        print 'Either {0} or {1} is not a file or a directory'.format(p1, p2)
+        print('Either {0} or {1} is not a file or a directory'.format(p1, p2))
 
 
 def filediff(p1, p2, verbose=False):
@@ -75,9 +83,9 @@ def streamdiff(p1, p2, verbose=False):
     f2 = audiotools.open(p2.path)
     diff = not audiotools.pcm_cmp(f1.to_pcm(), f2.to_pcm())
     if diff:
-        print 'Audio streams in {0} and {1} differ'.format(p1.path, p2.path)
+        print('Audio streams in {0} and {1} differ'.format(p1.path, p2.path))
     elif verbose:
-        print 'Audio streams in {0} and {1} are equal'.format(p1.path, p2.path)
+        print('Audio streams in {0} and {1} are equal'.format(p1.path, p2.path))
 
 
 def tagdiff(p1, p2, verbose=False):
@@ -93,9 +101,9 @@ def binarydiff(p1, p2, verbose=False):
         with open(p2.path) as f2:
             diff = f1.read() != f2.read()
     if diff:
-        print 'Binary file {0} and {1} differ'.format(p1.path, p2.path)
+        print('Binary file {0} and {1} differ'.format(p1.path, p2.path))
     elif verbose:
-        print 'Binary file {0} and {1} are equal'.format(p1.path, p2.path)
+        print('Binary file {0} and {1} are equal'.format(p1.path, p2.path))
 
 
 def diffzip(list1, list2):
