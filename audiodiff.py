@@ -279,6 +279,11 @@ class MP4Wrapper(FreeformTagsWrapper):
     FREEFORM_PATTERN = '----:com.apple.iTunes:(.*)'
     FREEFORM_FORMAT = '----:com.apple.iTunes:{0}'
 
+    def _build_keys(self):
+        keys = super(MP4Wrapper, self)._build_keys()
+        ignore = ['itunnorm', 'itunsmpb']
+        return [key for key in keys if key not in ignore]
+
     def __getitem__(self, key):
         original_key = self._reverselookup(key)
         if isinstance(original_key, tuple):
@@ -329,7 +334,13 @@ class MP3Wrapper(FreeformTagsWrapper):
     def __getitem__(self, public_key):
         key = self._reverselookup(public_key)
         if isinstance(key, tuple):
-            return [t.split('/')[key[1]] for t in self._tags[key[0]]]
+            values = []
+            for t in self._tags[key[0]]:
+                try:
+                    values.append(t.split('/')[key[1]])
+                except IndexError:
+                    values.append(None)
+            return values
         elif key == 'APIC:':
             return [self._tags[key].data]
         elif key == 'TDRC':
