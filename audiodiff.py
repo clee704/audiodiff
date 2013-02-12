@@ -7,7 +7,10 @@ import re
 import sys
 import traceback
 
-import audiotools
+try:
+    import audiotools
+except ImportError:
+    audiotools = None
 from mutagen.flac import FLAC
 from mutagen.mp4 import MP4
 from mutagen.mp3 import MP3
@@ -84,6 +87,9 @@ def filediff(p1, p2, verbose=False, skip_streams=False):
 
 def streamdiff(p1, p2, verbose=False):
     "Compares the audio streams in two files."
+    if audiotools is None:
+        print('audiotools is not installed. Use -s option to skip stream comparison.')
+        return
     f1 = audiotools.open(p1.path)
     f2 = audiotools.open(p2.path)
     diff = not audiotools.pcm_cmp(f1.to_pcm(), f2.to_pcm())
