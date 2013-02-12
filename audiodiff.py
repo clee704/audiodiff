@@ -38,7 +38,7 @@ def main_func():
     parser.add_argument('-v', '--verbose', action='store_true',
         help='Verbosely list files processed')
     parser.add_argument('-s', '--skip-streams', action='store_true',
-        help='Skip comparing audio streams. This is useful since the comparison is very slow')
+        help='Do not compare audio streams. This is useful since the comparison is very slow')
     parser.add_argument('-t', '--skip-tags', action='store_true',
         help='Do not compare tags')
     args = parser.parse_args()
