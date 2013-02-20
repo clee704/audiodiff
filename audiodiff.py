@@ -41,7 +41,10 @@ def main_func():
     parser.add_argument('-t', '--skip-tags', action='store_true',
         help='Do not compare tags')
     args = parser.parse_args()
-    recursivediff(*args.files, verbose=args.verbose, skip_streams=args.skip_streams, skip_tags=args.skip_tags)
+    try:
+        recursivediff(*args.files, verbose=args.verbose, skip_streams=args.skip_streams, skip_tags=args.skip_tags)
+    except KeyboardInterrupt:
+        print('Interrupted')
 
 
 def recursivediff(p1, p2, verbose=False, skip_streams=False, skip_tags=False):
