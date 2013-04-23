@@ -9,6 +9,9 @@ with the same name, even the extensions differ (e.g. ``a/b/c.flac`` and
 ``a/b/c.mp4`` will be compared, unlike ``diff -r``).
 You can choose to compare only audio streams, tag contents, or both.
 
+This tool is useful to confirm that lossless conversion is done successfully,
+or to compare audio files with backed up data.
+
 You have to install audiotools_ to compare audio streams.
 
 .. _audiotools: http://audiotools.sourceforge.net/install.html
