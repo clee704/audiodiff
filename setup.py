@@ -6,7 +6,7 @@ from setuptools.command.test import test as TestCommand
 
 
 # Parse version since we can't import the package
-# due to dependency on mutagen
+# due to dependencies
 def getversion():
     with open('audiodiff.py') as f:
         text = f.read()
