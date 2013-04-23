@@ -1,9 +1,17 @@
 import os
+import re
 import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-from audiodiff import __version__
+
+# Parse version since we can't import the package
+# due to dependency on mutagen
+def getversion():
+    with open('audiodiff.py') as f:
+        text = f.read()
+        m = re.search("^__version__ = '(.*)'$", text, re.M)
+        return m.group(1)
 
 
 # Utility function to read the README file.
@@ -30,7 +38,7 @@ class PyTest(TestCommand):
 
 setup(
     name = "audiodiff",
-    version = __version__,
+    version = getversion(),
     author = "Choongmin Lee",
     author_email = "choongmin@me.com",
     description = "commandline tool to compare audio files",
@@ -38,7 +46,10 @@ setup(
     license = "MIT License",
     url = "https://github.com/clee704/audiodiff",
     packages = find_packages(),
-    install_requires = ["mutagen = 1.2.1", "mutagenwrapper = 0.0.2"],
+    install_requires = [
+        "mutagenwrapper == 0.0.2",
+        "termcolor == 1.1.0"
+    ],
     long_description = read("README.rst"),
     classifiers = [
         # Full list is here: http://pypi.python.org/pypi?%3Aaction=list_classifiers
