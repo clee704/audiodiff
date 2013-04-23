@@ -38,7 +38,7 @@ setup(
     license = "MIT License",
     url = "https://github.com/clee704/audiodiff",
     packages = find_packages(),
-    install_requires = ["mutagen >= 1.2.1"],
+    install_requires = ["mutagen = 1.2.1", "mutagenwrapper = 0.0.2"],
     long_description = read("README.rst"),
     classifiers = [
         # Full list is here: http://pypi.python.org/pypi?%3Aaction=list_classifiers
