@@ -8,7 +8,7 @@ from setuptools.command.test import test as TestCommand
 # Parse version since we can't import the package
 # due to dependencies
 def getversion():
-    with open('audiodiff.py') as f:
+    with open('audiodiff/__init__.py') as f:
         text = f.read()
         m = re.search("^__version__ = '(.*)'$", text, re.M)
         return m.group(1)
