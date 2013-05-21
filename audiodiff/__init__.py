@@ -36,30 +36,30 @@ def main_func():
         help='Files or directories to compare. When comparing two directories, audio files with the same name (extensions may differ) will be compared.')
     parser.add_argument('-v', '--verbose', action='store_true',
         help='Verbosely list files processed')
-    parser.add_argument('-s', '--skip-streams', action='store_true',
-        help='Do not compare audio streams. This is useful since the comparison is very slow')
-    parser.add_argument('-t', '--skip-tags', action='store_true',
-        help='Do not compare tags')
+    parser.add_argument('-s', '--streams', action='store_true',
+        help='Compare only streams')
+    parser.add_argument('-t', '--tags', action='store_true',
+        help='Compare only tags. This is useful since the comparison is very slow')
     args = parser.parse_args()
     try:
-        recursivediff(*args.files, verbose=args.verbose, skip_streams=args.skip_streams, skip_tags=args.skip_tags)
+        recursivediff(*args.files, verbose=args.verbose, tags_only=args.tags, streams_only=args.streams)
     except KeyboardInterrupt:
         print('Interrupted')
 
 
-def recursivediff(p1, p2, verbose=False, skip_streams=False, skip_tags=False):
+def recursivediff(p1, p2, verbose=False, tags_only=False, streams_only=False):
     "Compares paths p1 and p2 recursively."
     try:
-        _recursivediff_wrapped(p1, p2, verbose, skip_streams, skip_tags)
+        _recursivediff_wrapped(p1, p2, verbose, tags_only, streams_only)
     except Exception as e:
         print('An error occurred during processing {0} and {1}'.format(p1.path, p2.path))
         traceback.print_exc()
 
 
-def _recursivediff_wrapped(p1, p2, verbose=False, skip_streams=False, skip_tags=False):
+def _recursivediff_wrapped(p1, p2, verbose=False, tags_only=False, streams_only=False):
     if p1.isfile():
         if p2.isfile():
-            filediff(p1, p2, verbose, skip_streams, skip_tags)
+            filediff(p1, p2, verbose, tags_only, streams_only)
         else:
             print('{0} is a file and {1} is not'.format(p1.path, p2.path))
     elif p1.isdir():
@@ -72,20 +72,20 @@ def _recursivediff_wrapped(p1, p2, verbose=False, skip_streams=False, skip_tags=
                 elif entry2 is None:
                     print('Only in {0}: {1}'.format(p1.path, entry1.path))
                 else:
-                    recursivediff(p1.join(entry1), p2.join(entry2), verbose, skip_streams, skip_tags)
+                    recursivediff(p1.join(entry1), p2.join(entry2), verbose, tags_only, streams_only)
         else:
             print('{0} is a directory and {1} is not'.format(p1.path, p2.path))
     else:
         print('Either {0} or {1} is not a file or a directory'.format(p1.path, p2.path))
 
 
-def filediff(p1, p2, verbose=False, skip_streams=False, skip_tags=False):
+def filediff(p1, p2, verbose=False, tags_only=False, streams_only=False):
     "Compares files given by paths p1 and p2."
     if p1.isaudiofile() and p2.isaudiofile():
-        if not skip_streams:
-            streamdiff(p1, p2, verbose)
-        if not skip_tags:
+        if tags_only:
             tagdiff(p1, p2, verbose)
+        elif streams_only:
+            streamdiff(p1, p2, verbose)
     else:
         binarydiff(p1, p2, verbose)
 
@@ -93,7 +93,7 @@ def filediff(p1, p2, verbose=False, skip_streams=False, skip_tags=False):
 def streamdiff(p1, p2, verbose=False):
     "Compares the audio streams in two files."
     if audiotools is None:
-        print('audiotools is not installed. Use -s option to skip stream comparison.')
+        print('audiotools is not installed. Use -t option to compare only tags.')
         return
     f1 = audiotools.open(p1.path)
     f2 = audiotools.open(p2.path)
