@@ -4,11 +4,11 @@ from operator import itemgetter
 import argparse
 import os
 import re
+import subprocess
 import sys
 import traceback
 
 from mutagenwrapper import open_tags
-from pydub import AudioSegment
 
 if sys.stdout.isatty():
     from termcolor import colored, cprint
@@ -91,9 +91,9 @@ def filediff(p1, p2, verbose=False, tags_only=False, streams_only=False):
 
 def streamdiff(p1, p2, verbose=False):
     "Compares the audio streams in two files."
-    song1 = AudioSegment.from_file(p1.path)
-    song2 = AudioSegment.from_file(p2.path)
-    if not (song1 == song2):  # pydub bug prevents use of !=
+    song1 = decode_audio(p1.path)
+    song2 = decode_audio(p2.path)
+    if song1 != song2:
         print('Audio streams in {0} and {1} differ'.format(p1.path, p2.path))
     elif verbose:
         print('Audio streams in {0} and {1} are equal'.format(p1.path, p2.path))
@@ -277,6 +277,17 @@ class Path(object):
 
     def __ge__(self, other):
         return str(self) >= str(other)
+
+
+def decode_audio(path):
+    args = ['ffmpeg',
+        '-i', path,   # input from path
+        '-vn',        # disable video recording
+        '-f', 'wav',  # output format
+        '-'           # output to stdout
+    ]
+    with open(os.devnull, 'w') as fnull:
+        return subprocess.check_output(args, stderr=fnull)
 
 
 if __name__ == '__main__':
