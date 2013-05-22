@@ -6,7 +6,7 @@ init:
 test:
 	py.test
 
-release:
+release: test
 	python setup.py sdist upload
 
 docs:
