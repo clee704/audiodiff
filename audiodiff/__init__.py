@@ -17,7 +17,7 @@ else:
     cprint = print
 
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 #: Files with these extensions will treated as audio files.
