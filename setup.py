@@ -48,7 +48,8 @@ setup(
     packages = find_packages(),
     install_requires = [
         "mutagenwrapper == 0.0.3",
-        "termcolor == 1.1.0"
+        "termcolor == 1.1.0",
+        "pydub == 0.6.3",
     ],
     long_description = read("README.rst"),
     classifiers = [

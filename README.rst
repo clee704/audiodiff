@@ -12,6 +12,4 @@ You can choose to compare only audio streams, tag contents, or both.
 This tool is useful to confirm that lossless conversion is done successfully,
 or to compare audio files with backed up data.
 
-You have to install audiotools_ to compare audio streams.
-
-.. _audiotools: http://audiotools.sourceforge.net/install.html
+ffmpeg is required to compare audio streams.

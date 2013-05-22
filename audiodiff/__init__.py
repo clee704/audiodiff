@@ -8,11 +8,7 @@ import sys
 import traceback
 
 from mutagenwrapper import open_tags
-
-try:
-    import audiotools
-except ImportError:
-    audiotools = None
+from pydub import AudioSegment
 
 if sys.stdout.isatty():
     from termcolor import colored, cprint
@@ -95,13 +91,9 @@ def filediff(p1, p2, verbose=False, tags_only=False, streams_only=False):
 
 def streamdiff(p1, p2, verbose=False):
     "Compares the audio streams in two files."
-    if audiotools is None:
-        print('audiotools is not installed. Use -t option to compare only tags.')
-        return
-    f1 = audiotools.open(p1.path)
-    f2 = audiotools.open(p2.path)
-    diff = not audiotools.pcm_cmp(f1.to_pcm(), f2.to_pcm())
-    if diff:
+    song1 = AudioSegment.from_file(p1.path)
+    song2 = AudioSegment.from_file(p2.path)
+    if not (song1 == song2):  # pydub bug prevents use of !=
         print('Audio streams in {0} and {1} differ'.format(p1.path, p2.path))
     elif verbose:
         print('Audio streams in {0} and {1} are equal'.format(p1.path, p2.path))
