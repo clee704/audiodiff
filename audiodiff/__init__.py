@@ -86,6 +86,9 @@ def filediff(p1, p2, verbose=False, tags_only=False, streams_only=False):
             tagdiff(p1, p2, verbose)
         elif streams_only:
             streamdiff(p1, p2, verbose)
+        else:
+            streamdiff(p1, p2, verbose)
+            tagdiff(p1, p2, verbose)
     else:
         binarydiff(p1, p2, verbose)
 
