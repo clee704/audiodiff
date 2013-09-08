@@ -47,7 +47,7 @@ setup(
     url = "https://github.com/clee704/audiodiff",
     packages = find_packages(),
     install_requires = [
-        "mutagenwrapper == 0.0.3",
+        "mutagenwrapper == 0.0.4",
         "termcolor == 1.1.0",
     ],
     long_description = read("README.rst"),
