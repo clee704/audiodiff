@@ -3,7 +3,7 @@ audiodiff
 
 audiodiff is a library that can be used to compare audio files.
 
-Examples:
+Examples::
 
     >>> import audiodiff
     >>> audiodiff.equal('airplane.flac', 'airplane.m4a')
