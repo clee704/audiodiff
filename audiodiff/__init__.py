@@ -430,5 +430,9 @@ def _diffzip(list1, list2):
     return rv
 
 
-if __name__ == '__main__':
+def main_func():
     CommandlineTool().run()
+
+
+if __name__ == '__main__':
+    main_func()
