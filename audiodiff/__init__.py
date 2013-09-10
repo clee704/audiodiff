@@ -157,15 +157,15 @@ def tags(filepath):
     return tags
 
 
-def tagsdiff(filepath1, filepath2, verbose=False):
+def tagsdiff(filepath1, filepath2):
     """
     Prints different tags in the two audio files.
 
     """
     tags1 = tags(filepath1)
     tags2 = tags(filepath2)
-    same, data = dictcmp(tags1, tags2)
-    if not same:
+    equal, data = dictcmp(tags1, tags2)
+    if not equal:
         colors = {'-': 'red', '+': 'green', ' ': None}
         cprint(colored('--- {0}'.format(filepath1), colors['-']))
         cprint(colored('+++ {0}'.format(filepath2), colors['+']))
@@ -177,8 +177,6 @@ def tagsdiff(filepath1, filepath2, verbose=False):
                 value = value[:92] + '...' + value[-5:]
             cprint(colored('{0}{1}: {2}'.format(sign, key, value),
                    colors[sign]))
-    elif verbose:
-        print('Tags in {0} and {1} are equal'.format(filepath1, filepath2))
 
 
 def dictcmp(dict1, dict2):
