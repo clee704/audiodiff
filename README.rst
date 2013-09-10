@@ -1,32 +1,31 @@
 audiodiff
 =========
 
-audiodiff is a library that can be used to compare audio files.
+audiodiff is a library that can be used to compare audio files. Two audio flies
+are considered equal if they have the same audio streams and normalized tags.
 
 Examples::
 
     >>> import audiodiff
     >>> audiodiff.equal('airplane.flac', 'airplane.m4a')
     False
-    >>> audiodiff.audioequal('airplane.flac', 'airplane.m4a')
+    >>> audiodiff.audio_equal('airplane.flac', 'airplane.m4a')
     True
-    >>> audiodiff.tagsequal('airplane.flac', 'airplane.m4a')
+    >>> audiodiff.tags_equal('airplane.flac', 'airplane.m4a')
     False
+
+If you want more, you can get audio checksums and tags::
+
     >>> audiodiff.checksum('airplane.flac')
     'ffa0d242f8642b20e90f521a898a0ab5'
     >>> audiodiff.checksum('airplane.m4a')
     'ffa0d242f8642b20e90f521a898a0ab5'
-    >>> audiodiff.tags('airplane.flac')
+    >>> tags1 = audiodiff.tags('airplane.flac')
+    >>> tags1
     {'artist': 'f(x)', 'album': 'Pink Tape', 'title': 'Airplane'}
-    >>> audiodiff.tags('airplane.m4a')
+    >>> tags2 = audiodiff.tags('airplane.m4a')
+    >>> tags2
     {'title': 'f(x) - Pink Tape - Airplane'}
-    >>> audiodiff.tagsdiff('airplane.flac', 'airplane.m4a')
-    --- airplane.flac
-    +++ airplane.m4a
-    -artist: f(x)
-    -album: Pink Tape
-    -title: Airplane
-    +title: f(x) - Pink Tape - Airplane
 
 It can be also used as a commandline tool. When used as a commandline tool,
 it supports comparing audio files in two directories recursively. Audio files
@@ -54,7 +53,8 @@ Commandline examples::
 Supported audio formats
 -----------------------
 
-Currently audiodiff can only read FLAC, M4A, MP3 files.
+Currently audiodiff can only read FLAC, M4A, MP3 files. They must have `flac`,
+`m4a`, `mp3` file extensions respectively.
 
 
 Caveats

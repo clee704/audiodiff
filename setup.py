@@ -2,6 +2,8 @@ import os
 import re
 import sys
 
+import audiodiff
+
 try:
     from setuptools import setup
 except ImportError:
@@ -12,21 +14,14 @@ packages = [
 ]
 
 requires = [
-    "mutagenwrapper == 0.0.4",
+    "mutagenwrapper == 0.0.5",
     "termcolor == 1.1.0",
 ]
 
-# Parse version since we can't import the package due to dependencies
-def getversion():
-    with open('audiodiff/__init__.py') as f:
-        text = f.read()
-        m = re.search("^__version__ = '(.*)'$", text, re.M)
-        return m.group(1)
-
 setup(
     name = "audiodiff",
-    version = getversion(),
-    description = "commandline tool to compare audio files",
+    version = audiodiff.__version__,
+    description = "compares audio files",
     long_description = open("README.rst").read(),
     author = "Choongmin Lee",
     author_email = "choongmin@me.com",
@@ -35,7 +30,7 @@ setup(
     install_requires = requires,
     entry_points = {
       "console_scripts": [
-        'audiodiff = audiodiff:main_func',
+        'audiodiff = audiodiff.commandlinetool:main_func',
       ],
     },
     license = open('LICENSE').read(),

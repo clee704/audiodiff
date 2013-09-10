@@ -1,85 +1,98 @@
 import os
 __dir__ = os.path.dirname(__file__)
+os.chdir(os.path.join(__dir__, 'files'))
 import sys
 sys.path.insert(0, os.path.join(__dir__, '..'))
 
 import pytest
+parametrize = pytest.mark.parametrize
+
 import audiodiff
+from audiodiff import commandlinetool
 
 
-def fx(filename):
-    return os.path.join(__dir__, 'fixtures', filename)
+@parametrize(('name1', 'name2', 'truth'), [
+    ('mahler.flac', 'mahler.m4a', True),
+    ('mahler.flac', 'mahler_tagsdiff.m4a', False),
+    ('mahler.flac', 'mahler.mp3', False),
+    ('mahler.m4a', 'mahler_tagsdiff.m4a', False),
+    ('mahler.m4a', 'mahler.mp3', False),
+    ('mahler_tagsdiff.m4a', 'mahler.mp3', False),
+])
+def test_equal(name1, name2, truth):
+    assert audiodiff.equal(name1, name2) == truth
 
 
-def test_checksum():
-    assert audiodiff.checksum(fx('mahler.flac')) == 'db5ef0d702f66ce8b6a27395c32e1d28'
-    assert audiodiff.checksum(fx('mahler.m4a')) == 'db5ef0d702f66ce8b6a27395c32e1d28'
-    assert audiodiff.checksum(fx('mahler_tagsdiff.m4a')) == 'db5ef0d702f66ce8b6a27395c32e1d28'
-    assert audiodiff.checksum(fx('mahler.mp3')) == 'cc9b70f5a71d1849e85f13ba7dda0322'
+@parametrize(('name1', 'name2', 'truth'), [
+    ('mahler.flac', 'mahler.m4a', True),
+    ('mahler.flac', 'mahler_tagsdiff.m4a', True),
+    ('mahler.flac', 'mahler.mp3', False),
+    ('mahler.m4a', 'mahler_tagsdiff.m4a', True),
+    ('mahler.m4a', 'mahler.mp3', False),
+    ('mahler_tagsdiff.m4a', 'mahler.mp3', False),
+])
+def test_audio_equal(name1, name2, truth):
+    assert audiodiff.audio_equal(name1, name2) == truth
 
 
-def test_audioequal():
-    assert audiodiff.audioequal(fx('mahler.flac'), fx('mahler.m4a'))
-    assert audiodiff.audioequal(fx('mahler.flac'), fx('mahler_tagsdiff.m4a'))
-    assert not audiodiff.audioequal(fx('mahler.flac'), fx('mahler.mp3'))
-    assert audiodiff.audioequal(fx('mahler.m4a'), fx('mahler_tagsdiff.m4a'))
-    assert not audiodiff.audioequal(fx('mahler.m4a'), fx('mahler.mp3'))
-    assert not audiodiff.audioequal(fx('mahler_tagsdiff.m4a'), fx('mahler.mp3'))
+@parametrize(('name1', 'name2', 'truth'), [
+    ('mahler.flac', 'mahler.m4a', True),
+    ('mahler.flac', 'mahler_tagsdiff.m4a', False),
+    ('mahler.flac', 'mahler.mp3', True),
+    ('mahler.m4a', 'mahler_tagsdiff.m4a', False),
+    ('mahler.m4a', 'mahler.mp3', True),
+    ('mahler_tagsdiff.m4a', 'mahler.mp3', False),
+])
+def test_tags_equal(name1, name2, truth):
+    assert audiodiff.tags_equal(name1, name2) == truth
 
 
-def test_tagsequal():
-    assert audiodiff.tagsequal(fx('mahler.flac'), fx('mahler.m4a'))
-    assert not audiodiff.tagsequal(fx('mahler.flac'), fx('mahler_tagsdiff.m4a'))
-    assert audiodiff.tagsequal(fx('mahler.flac'), fx('mahler.mp3'))
-    assert not audiodiff.tagsequal(fx('mahler.m4a'), fx('mahler_tagsdiff.m4a'))
-    assert audiodiff.tagsequal(fx('mahler.m4a'), fx('mahler.mp3'))
-    assert not audiodiff.tagsequal(fx('mahler_tagsdiff.m4a'), fx('mahler.mp3'))
+@parametrize(('name', 'md5'), [
+    ('mahler.flac', 'db5ef0d702f66ce8b6a27395c32e1d28'),
+    ('mahler.m4a', 'db5ef0d702f66ce8b6a27395c32e1d28'),
+    ('mahler_tagsdiff.m4a', 'db5ef0d702f66ce8b6a27395c32e1d28'),
+    ('mahler.mp3', 'cc9b70f5a71d1849e85f13ba7dda0322'),
+])
+def test_checksum(name, md5):
+    assert audiodiff.checksum(name) == md5
 
 
-def test_equal():
-    assert audiodiff.equal(fx('mahler.flac'), fx('mahler.m4a'))
-    assert not audiodiff.equal(fx('mahler.flac'), fx('mahler_tagsdiff.m4a'))
-    assert not audiodiff.equal(fx('mahler.flac'), fx('mahler.mp3'))
-    assert not audiodiff.equal(fx('mahler.m4a'), fx('mahler_tagsdiff.m4a'))
-    assert not audiodiff.equal(fx('mahler.m4a'), fx('mahler.mp3'))
-    assert not audiodiff.equal(fx('mahler_tagsdiff.m4a'), fx('mahler.mp3'))
+tags1 = {
+    'album': 'Symphony No. 1 in D',
+    'artist': 'Mahler',
+    'composer': 'Claudio Abbado / Berlin Ph',
+    'composersortorder': 'Abbado, Claudio / Berlin Ph',
+    'date': '1888',
+    'genre': 'A/Orchestral/Symphony',
+    'title': 'III. Feierlich und gemessen, ohne zu schleppen',
+    'tracknumber': '3',
+    'tracktotal': '4',
+}
+tags2 = {
+    'album': 'Symphony No. 1 in D',
+    'artist': 'Mahler',
+    'date': '1888',
+    'genre': 'Orchestral/Symphony',
+    'title': 'III',
+    'tracknumber': '3',
+    'tracktotal': '0',
+    'x_foo': 'bar',
+}
+@parametrize(('name', 'tags'), [
+    ('mahler.flac', tags1),
+    ('mahler.m4a', tags1),
+    ('mahler.mp3', tags1),
+    ('mahler_tagsdiff.m4a', tags2),
+])
+def test_tags(name, tags):
+    assert audiodiff.tags(name) == tags
 
 
-def test_tags():
-    tags = {
-      'album': 'Symphony No. 1 in D',
-      'artist': 'Mahler',
-      'composer': 'Claudio Abbado / Berlin Ph',
-      'composersortorder': 'Abbado, Claudio / Berlin Ph',
-      'date': '1888',
-      'genre': 'A/Orchestral/Symphony',
-      'title': 'III. Feierlich und gemessen, ohne zu schleppen',
-      'tracknumber': '3',
-      'tracktotal': '4'
-    }
-    assert audiodiff.tags(fx('mahler.flac')) == tags
-    assert audiodiff.tags(fx('mahler.m4a')) == tags
-    assert audiodiff.tags(fx('mahler.mp3')) == tags
-    assert audiodiff.tags(fx('mahler_tagsdiff.m4a')) == {
-      'album': 'Symphony No. 1 in D',
-      'artist': 'Mahler',
-      'date': '1888',
-      'genre': 'Orchestral/Symphony',
-      'title': 'III',
-      'tracknumber': '3',
-      'tracktotal': '0',
-      'x_foo': 'bar'
-    }
-
-
-def test_tagsdiff(capsys):
-    audiodiff.tagsdiff(fx('mahler.flac'), fx('mahler.m4a'))
-    assert capsys.readouterr()[0] == ''
-    audiodiff.tagsdiff(fx('mahler.flac'), fx('mahler.mp3'))
-    assert capsys.readouterr()[0] == ''
-    audiodiff.tagsdiff(fx('mahler.flac'), fx('mahler_tagsdiff.m4a'))
-    assert capsys.readouterr()[0] == """--- {0}
-+++ {1}
+@parametrize(('name1', 'name2', 'out', 'err'), [
+    ('mahler.flac', 'mahler.m4a', '', ''),
+    ('mahler.flac', 'mahler.mp3', '', ''),
+    ('mahler.flac', 'mahler_tagsdiff.m4a', """--- mahler.flac
++++ mahler_tagsdiff.m4a
 -composer: Claudio Abbado / Berlin Ph
 -composersortorder: Abbado, Claudio / Berlin Ph
 -genre: A/Orchestral/Symphony
@@ -89,44 +102,122 @@ def test_tagsdiff(capsys):
 -tracktotal: 4
 +tracktotal: 0
 +x_foo: bar
-""".format(fx('mahler.flac'), fx('mahler_tagsdiff.m4a'))
+""", ''),
+])
+def test_diff_tags(name1, name2, out, err, capsys):
+    commandlinetool.diff_tags(name1, name2)
+    assert capsys.readouterr() == (out, err)
 
 
-@pytest.mark.parametrize(('dict1', 'dict2', 'rv'), [
-    ({}, {}, (True, [])),
-    ({'a': 1}, {}, (False, [('-', 'a', 1)])),
-    ({}, {'a': 1}, (False, [('+', 'a', 1)])),
+@parametrize(('dict1', 'dict2', 'rv'), [
+    ({}, {}, []),
+    ({'a': 1}, {}, [('-', 'a', 1)]),
+    ({}, {'a': 1}, [('+', 'a', 1)]),
     ({'a': 1, 'b': 2, 'c': 3},
      {'b': 2, 'c': 5, 'd': 7},
-     (False, [('-', 'a', 1),
-              (' ', 'b', 2),
-              ('-', 'c', 3),
-              ('+', 'c', 5),
-              ('+', 'd', 7)])),
+     [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)]),
 ])
-def test_dictcmp(dict1, dict2, rv):
-    assert audiodiff.dictcmp(dict1, dict2) == rv
+def test_compare_dicts(dict1, dict2, rv):
+    assert commandlinetool._compare_dicts(dict1, dict2) == rv
 
 
-@pytest.mark.parametrize(('list1', 'list2', 'rv'), [
-    ([], [], []),
-    (['a'], [], [('a', None)]),
-    (['a', 'b'], ['a'], [('a', 'a'), ('b', None)]),
-    (['a', 'b'], ['a', 'a', 'b'], [('a', 'a'), (None, 'a'), ('b', 'b')]),
-    (['a', 'c', 'd'],
-     ['b', 'd', 'e'],
-     [('a', None), (None, 'b'), ('c', None), ('d', 'd'), (None, 'e')]),
+@parametrize(('args', 'return_code', 'out', 'err'), [
+    (['mahler.flac', 'mahler.m4a'], 0, '', ''),
+    (['mahler.flac', 'mahler.m4a', '-s'], 0, """Audio streams in mahler.flac and mahler.m4a are identical
+Tags in mahler.flac and mahler.m4a are identical
+""", ''),
+    (['mahler.flac', 'mahler_tagsdiff.m4a', '-a'], 0, '', ''),
+    (['mahler.flac', 'mahler_tagsdiff.m4a', '-t', '-q'], 1, """Tags in mahler.flac and mahler_tagsdiff.m4a differ
+""", ''),
+    (['mahler.flac', 'mahler.mp3', '--tags'], 0, '', ''),
+    (['y', 'z'], 0, '', ''),
+    (['x', 'y'], 1, """--- x/a.flac
++++ y/a.m4a
+-composer: Claudio Abbado / Berlin Ph
+-composersortorder: Abbado, Claudio / Berlin Ph
+-genre: A/Orchestral/Symphony
++genre: Orchestral/Symphony
+-title: III. Feierlich und gemessen, ohne zu schleppen
++title: III
+-tracktotal: 4
++tracktotal: 0
++x_foo: bar
+Files x/animal and y/animal differ
+Only in x: b.txt
+Audio streams in x/d.mp3 and y/d.flac differ
+Only in x: hello
+Only in y: world
+""", ''),
+    (['x', 'y', '--brief'], 1, """Tags in x/a.flac and y/a.m4a differ
+Files x/animal and y/animal differ
+Only in x: b.txt
+Audio streams in x/d.mp3 and y/d.flac differ
+Only in x: hello
+Only in y: world
+""", ''),
+    (['x', 'y', '-s'], 1, """Audio streams in x/a.flac and y/a.m4a are identical
+--- x/a.flac
++++ y/a.m4a
+ album: Symphony No. 1 in D
+ artist: Mahler
+-composer: Claudio Abbado / Berlin Ph
+-composersortorder: Abbado, Claudio / Berlin Ph
+ date: 1888
+-genre: A/Orchestral/Symphony
++genre: Orchestral/Symphony
+-title: III. Feierlich und gemessen, ohne zu schleppen
++title: III
+ tracknumber: 3
+-tracktotal: 4
++tracktotal: 0
++x_foo: bar
+Files x/animal and y/animal differ
+Audio streams in x/b.m4a and y/b.flac are identical
+Tags in x/b.m4a and y/b.flac are identical
+Audio streams in x/b.m4a and y/b.m4a are identical
+Tags in x/b.m4a and y/b.m4a are identical
+Only in x: b.txt
+Audio streams in x/c.flac and y/c.flac are identical
+Tags in x/c.flac and y/c.flac are identical
+Audio streams in x/c.flac and y/c.m4a are identical
+Tags in x/c.flac and y/c.m4a are identical
+Audio streams in x/c.m4a and y/c.flac are identical
+Tags in x/c.m4a and y/c.flac are identical
+Audio streams in x/c.m4a and y/c.m4a are identical
+Tags in x/c.m4a and y/c.m4a are identical
+Audio streams in x/d.mp3 and y/d.flac differ
+Tags in x/d.mp3 and y/d.flac are identical
+Files x/foo.txt and y/foo.txt are identical
+Only in x: hello
+Only in y: world
+""", ''),
+    (['x', 'y', '--report-identical-files', '-q'], 1, """Audio streams in x/a.flac and y/a.m4a are identical
+Tags in x/a.flac and y/a.m4a differ
+Files x/animal and y/animal differ
+Audio streams in x/b.m4a and y/b.flac are identical
+Tags in x/b.m4a and y/b.flac are identical
+Audio streams in x/b.m4a and y/b.m4a are identical
+Tags in x/b.m4a and y/b.m4a are identical
+Only in x: b.txt
+Audio streams in x/c.flac and y/c.flac are identical
+Tags in x/c.flac and y/c.flac are identical
+Audio streams in x/c.flac and y/c.m4a are identical
+Tags in x/c.flac and y/c.m4a are identical
+Audio streams in x/c.m4a and y/c.flac are identical
+Tags in x/c.m4a and y/c.flac are identical
+Audio streams in x/c.m4a and y/c.m4a are identical
+Tags in x/c.m4a and y/c.m4a are identical
+Audio streams in x/d.mp3 and y/d.flac differ
+Tags in x/d.mp3 and y/d.flac are identical
+Files x/foo.txt and y/foo.txt are identical
+Only in x: hello
+Only in y: world
+""", ''),
+    (['mahler.flac', 'x'], 2, '', """audiodiff: No such file or directory: 'x/mahler.flac'
+"""),
+    (['w', 'z'], 2, '', """audiodiff: No such file or directory: 'w'
+"""),
 ])
-def test_diffzip(list1, list2, rv):
-    assert audiodiff._diffzip(list1, list2) == rv
-
-
-@pytest.mark.parametrize(('path', 'path_without_ext'), [
-    ('test.flac', 'test'),
-    ('foo/bar.m4a', 'foo/bar'),
-    ('something.jpg', 'something.jpg'),
-])
-def test_path(path, path_without_ext):
-    p = audiodiff._Path(path)
-    p.hideext()
-    assert str(p) == path_without_ext
+def test_main_func(args, return_code, out, err, capsys):
+    assert commandlinetool.main_func(args) == return_code
+    assert capsys.readouterr() == (out, err)
