@@ -8,7 +8,7 @@ except ImportError:
     from distutils.core import setup
 
 packages = [
-    'audiodiff'
+    'audiodiff',
 ]
 
 requires = [
