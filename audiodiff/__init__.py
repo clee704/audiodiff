@@ -11,7 +11,7 @@ except ImportError:
     mutagenwrapper = None
 
 
-__version__ = '0.2-dev'
+__version__ = '0.2'
 
 
 #: Supported audio formats
