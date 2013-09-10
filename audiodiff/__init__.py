@@ -244,7 +244,7 @@ class CommandlineTool(object):
         try:
             self._diff_recurse(args.files[0], args.files[1], args)
         except KeyboardInterrupt:
-            print('Interrupted')
+            pass
 
     def _diff_recurse(self, p1, p2, args):
         "Compares paths p1 and p2 recursively."
