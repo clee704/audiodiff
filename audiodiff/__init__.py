@@ -2,6 +2,7 @@
 from __future__ import print_function
 import argparse
 from chunk import Chunk
+import filecmp
 import hashlib
 from operator import itemgetter
 import os
@@ -134,8 +135,8 @@ def equal(filepath1, filepath2):
         return (audioequal(filepath1, filepath2) and
                 tagsequal(filepath1, filepath2))
     else:
-        with open(filepath1) as f1, open(filepath2) as f2:
-            return f1.read() == f2.read()
+        with open(filepath1, 'rb') as f1, open(filepath2, 'rb') as f2:
+            return filecmp.cmp(f1, f2)
 
 
 def tags(filepath):
