@@ -43,13 +43,13 @@ def getaudiostream(filepath, ffmpeg_bin=None):
     if ffmpeg_bin is None:
         ffmpeg_bin = ffmpeg_path()
     args = [ffmpeg_bin,
-        '-i', filepath,  # input from path
+        '-i', '-',       # input from stdin
         '-vn',           # disable video recording
         '-f', 'wav',     # output format
         '-'              # output to stdout
     ]
-    with open(os.devnull, 'w') as fnull:
-        raw_wave_data = subprocess.check_output(args, stderr=fnull)
+    with open(filepath, 'rb') as f, open(os.devnull, 'wb') as fnull:
+        raw_wave_data = subprocess.check_output(args, stdin=f, stderr=fnull)
         return _readframes(raw_wave_data)
 
 
