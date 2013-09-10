@@ -6,7 +6,7 @@ init:
 test:
 	py.test
 
-dist: clean
+dist: test clean
 	python setup.py sdist
 
 release: test clean
