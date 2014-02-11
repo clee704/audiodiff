@@ -1,3 +1,10 @@
+"""
+   audiodiff.commandlinetool
+   ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   This module contains functions for the ``audiodiff`` commandline tool.
+
+"""
 from __future__ import print_function
 import argparse
 import itertools
@@ -14,7 +21,9 @@ except ImportError:
 from . import __version__, is_supported_format, equal, audio_equal, tags
 
 
-parser = argparse.ArgumentParser(prog='audiodiff',
+#: A :class:`argparse.ArgumentParser`
+parser = argparse.ArgumentParser(
+    prog='audiodiff',
     description="""
 Compare two files or directories recursively. For supported audio files
 (flac, m4a, mp3), they are treated as if extensions are removed from filenames.
@@ -25,29 +34,40 @@ non-audio files as well as unsupported audio files are equal if they are
 exactly equal, bit by bit.
 """.format(__version__),
     epilog='version {0}'.format(__version__))
-parser.add_argument('files',
+parser.add_argument(
+    'files',
     metavar='file',
     nargs=2,
     help='two files or directories to compare')
-parser.add_argument('-a', '--streams',
+parser.add_argument(
+    '-a', '--streams',
     action='store_true',
     help='compare only audio streams')
-parser.add_argument('-t', '--tags',
+parser.add_argument(
+    '-t', '--tags',
     action='store_true',
-    help='compare only tags; useful since comparing audio streams could be slow')
-parser.add_argument('-q', '--brief',
+    help='compare only tags; '
+         'useful since comparing audio streams could be slow')
+parser.add_argument(
+    '-q', '--brief',
     action='store_true',
     help='report only whether files differ')
-parser.add_argument('-s', '--report-identical-files',
+parser.add_argument(
+    '-s', '--report-identical-files',
     action='store_true',
     dest='verbose',
     help='report when two files are the same')
-parser.add_argument('--ffmpeg_bin',
+parser.add_argument(
+    '--ffmpeg_bin',
     metavar='path',
     help='specify ffmpeg binary path')
 
 
 def main_func(args=None):
+    """The entry point for the ``audiodiff`` command line tool. Parses the
+    command arguments and calls :func:`diff_checked`.
+
+    """
     try:
         options = parser.parse_args(args)
         return diff_checked(options.files[0], options.files[1], options)
@@ -56,6 +76,7 @@ def main_func(args=None):
 
 
 def diff_checked(p1, p2, options):
+    """Calls :func:`diff_recurse` and handles exceptions if raised."""
     try:
         return diff_recurse(p1, p2, options)
     except IOError as e:
@@ -63,13 +84,15 @@ def diff_checked(p1, p2, options):
         print(msg, file=sys.stderr)
         return 2
     except Exception as e:
-        msg = '{0}: an error occurred while processing {1} and {2}'.format(parser.prog, p1, p2)
+        msg = '{0}: an error occurred while processing {1} and {2}'.format(
+            parser.prog, p1, p2)
         print(msg, file=sys.stderr)
         traceback.print_exc()
         return 2
 
 
 def diff_recurse(p1, p2, options):
+    """Recursively compares files in the specified paths."""
     type1 = _get_type(p1)
     type2 = _get_type(p2)
     if type1 == 'file' and type2 == 'file':
@@ -101,19 +124,22 @@ def _get_type(name):
 
 
 def diff_files(p1, p2, options):
+    """Compares the two files and prints the results."""
     if is_supported_format(p1) and is_supported_format(p2):
         if options.streams:
             return diff_streams(p1, p2, options.verbose, options.ffmpeg_bin)
         elif options.tags:
             return diff_tags(p1, p2, options.verbose, options.brief)
         else:
-            return max(diff_streams(p1, p2, options.verbose, options.ffmpeg_bin),
+            return max(diff_streams(p1, p2, options.verbose,
+                                    options.ffmpeg_bin),
                        diff_tags(p1, p2, options.verbose, options.brief))
     else:
         return diff_binary(p1, p2, options.verbose)
 
 
 def diff_dirs(p1, p2, options):
+    """Compares the two directories and prints the results."""
     ret = 0
     cnames1 = _cnames(p1)
     cnames2 = _cnames(p2)
@@ -138,6 +164,7 @@ def diff_dirs(p1, p2, options):
 
 def _cnames(d):
     names = os.listdir(d)
+    names.sort()
     cnames = {}
     for name in names:
         if is_supported_format(name):
@@ -149,6 +176,7 @@ def _cnames(d):
 
 
 def diff_streams(p1, p2, verbose=False, ffmpeg_bin=None):
+    """Prints whether the two audio files' streams differ or are identical."""
     if not audio_equal(p1, p2, ffmpeg_bin):
         print('Audio streams in {0} and {1} differ'.format(p1, p2))
         return 1
@@ -158,6 +186,7 @@ def diff_streams(p1, p2, verbose=False, ffmpeg_bin=None):
 
 
 def diff_tags(p1, p2, verbose=False, brief=False):
+    """Prints whether the two audio files' tags differ or are identical."""
     if sys.stdout.isatty() and termcolor is not None:
         colored = termcolor.colored
         cprint = termcolor.cprint
@@ -188,17 +217,16 @@ def diff_tags(p1, p2, verbose=False, brief=False):
 
 
 def _compare_dicts(dict1, dict2):
-    """
-    Compares two dictionary-like objects and returns a list of tuples
+    """Compares two dictionary-like objects and returns a list of tuples
     (*sign*, *key*, *value*). *sign* is '-' if the key is present
     in the first object but not in the second, or the key is present in
     both objects but the values differ. A '+' sign means the opposite.
     A ' ' sign means the key and value are present in both objects.
 
-    Examples:
+    Examples::
 
-    >>> compare_dicts({'a': 1, 'b': 2, 'c': 3}, {'b': 2, 'c': 5, 'd': 7})
-    [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)]
+        >>> compare_dicts({'a': 1, 'b': 2, 'c': 3}, {'b': 2, 'c': 5, 'd': 7})
+        [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)]
 
     """
     keys1 = set(dict1.iterkeys())
@@ -219,6 +247,7 @@ def _compare_dicts(dict1, dict2):
 
 
 def diff_binary(p1, p2, verbose=False):
+    """Prints whether the two non-audio files differ or are identical."""
     if not equal(p1, p2):
         print('Files {0} and {1} differ'.format(p1, p2))
         return 1

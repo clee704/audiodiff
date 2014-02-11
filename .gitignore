@@ -4,3 +4,6 @@
 *.egg-info
 dist
 build
+.tox
+.coverage
+.cache

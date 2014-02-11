@@ -1,0 +1,7 @@
+
+audiodiff is a small Python library for comparing audio files. Two audio flies
+are considered equal if they have the same audio streams and normalized tags.
+
+- Documentation: http://audiodiff.readthedocs.org
+- PyPI: https://pypi.python.org/pypi/audiodiff
+- GitHub: https://github.com/clee704/audiodiff

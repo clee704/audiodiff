@@ -1,4 +1,11 @@
 #! /usr/bin/env python
+"""
+   audiodiff
+   ~~~~~~~~~
+
+   This module contains functions for comparing audio files.
+
+"""
 import chunk
 import filecmp
 import hashlib
@@ -11,102 +18,113 @@ except ImportError:
     mutagenwrapper = None
 
 
-__version__ = '0.2'
+__version__ = '0.3.0.dev1'
 
 
-#: Supported audio formats
-AUDIO_FORMATS = ['flac', 'm4a', 'mp3']
+#: Supported audio formats (extensions)
+AUDIO_FORMATS = ['wav', 'flac', 'm4a', 'mp3']
 
-#: Default `ffmpeg` path
+#: Default FFmpeg path
 FFMPEG_BIN = 'ffmpeg'
 
 
 def equal(name1, name2, ffmpeg_bin=None):
-    """
-    Compares two files and returns True if they are considered equal. For audio
-    files, they are equal if their uncompressed audio streams and tags
-    (reported by mutagenwrapper, except for `encodedby` which is ignored) are
-    equal. Otherwise, two files must have the same content to be equal.
+    """Compares two files and returns ``True`` if they are considered equal.
+    For audio files, they are equal if their uncompressed audio streams and
+    tags (reported by mutagenwrapper, except for ``encodedby`` which is
+    ignored) are equal. For non-audio files, they must have the same content to
+    be equal.
 
     """
     if is_supported_format(name1) and is_supported_format(name2):
-        return audio_equal(name1, name2, ffmpeg_bin) and tags_equal(name1, name2)
+        return audio_equal(name1, name2, ffmpeg_bin) and tags_equal(name1,
+                                                                    name2)
     else:
         return filecmp.cmp(name1, name2, False)
 
 
 def audio_equal(name1, name2, ffmpeg_bin=None):
-    """
-    Compares two audio files and returns True if they have the same audio
-    streams.
+    """Compares two audio files and returns ``True`` if they have the same
+    audio streams.
 
     """
     return checksum(name1, ffmpeg_bin) == checksum(name2, ffmpeg_bin)
 
 
 def tags_equal(name1, name2):
-    """
-    Compares two audio files and returns True if they have the same tags
-    reported by mutagenwrapper. It ignores `encodedby` tag.
+    """Compares two audio files and returns ``True`` if they have the same tags
+    reported by mutagenwrapper. It ignores ``encodedby`` tag.
 
     """
     return tags(name1) == tags(name2)
 
 
 def checksum(name, ffmpeg_bin=None):
-    """
-    Returns an MD5 checksum of the uncompressed WAVE data stream of the audio
-    file.
+    """Returns an SHA1 checksum of the uncompressed WAVE data stream of the
+    audio file. Note that the checksums for the same file may differ across
+    different platforms if the file is lossy due to floating point problems and
+    different implementations of decoders.
 
     """
     if ffmpeg_bin is None:
         ffmpeg_bin = ffmpeg_path()
-    args = [ffmpeg_bin,
-        '-i', '-',       # input from stdin
-        '-vn',           # disable video recording
-        '-f', 'wav',     # output format
-        '-'              # output to stdout
+    args = [
+        ffmpeg_bin,
+        '-i', name,
+        '-vn',
+        '-f', 's24le',
+        '-',
     ]
-    with open(name, 'rb') as f, open(os.devnull, 'wb') as fnull:
-        proc = subprocess.Popen(args, stdin=f, stdout=subprocess.PIPE, stderr=fnull)
-        _seek_to_data_chunk(proc.stdout)
-        return _compute_md5(proc.stdout)
+
+    # Check if the file is readable and raise an appropriate exception if not
+    with open(name) as f:
+        f.read(1)
+
+    with open(os.devnull, 'wb') as fnull:
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        sha1sum = _compute_sha1(proc.stdout)
+        proc.wait()
+        try:
+            if sha1sum is None:
+                raise ExternalLibraryError(proc.stderr.read())
+            return sha1sum
+        finally:
+            proc.stdout.close()
+            proc.stderr.close()
 
 
-def _seek_to_data_chunk(f):
-    assert f.read(12) == 'RIFF\x00\x00\x00\x00WAVE'
-    while True:
-        c = chunk.Chunk(f, bigendian=False)
-        if c.getname() == 'data':
-            break
-        else:
-            c.skip()
-
-
-def _compute_md5(f):
-    hasher = hashlib.md5()
+def _compute_sha1(f):
+    hasher = hashlib.sha1()
+    empty = True
     while True:
         data = f.read(hasher.block_size * 128)
         if not data:
             break
+        empty = False
         hasher.update(data)
+    if empty:
+        return None
     return hasher.hexdigest()
 
 
 def tags(name):
-    """
-    Returns tags in the audio file as `dict`. It converts tags returned by
-    ``mutagenwrapper.read_tags`` by unwrapping single valued items
-    (i.e. without enclosing lists) and removing `encodedby` tag. To read
+    """Returns tags in the audio file as a ``dict``. It converts tags returned
+    by ``mutagenwrapper.read_tags`` by unwrapping single valued items
+    (i.e. without enclosing lists) and removing ``encodedby`` tag. To read
     unmodified, but still normalized tags, use ``mutagenwrapper.read_tags``.
     For unmodified and unnormalized tags, use the ``mutagen`` library.
 
     """
     if mutagenwrapper is None:
         raise ImportError('mutagenwrapper is required to read tags')
-    return {key: _unwrap(value)
-            for key, value in mutagenwrapper.read_tags(name).iteritems()
-            if key != 'encodedby'}
+    if not is_supported_format(name):
+        raise UnsupportedFileError(name + ' is not a supported audio file')
+    if get_extension(name) == 'wav':
+        return {}
+    return dict((key, _unwrap(value))
+                for key, value in mutagenwrapper.read_tags(name).iteritems()
+                if key != 'encodedby')
 
 
 def _unwrap(x):
@@ -119,16 +137,47 @@ def _unwrap(x):
         return x
 
 
-def is_supported_format(name):
+def get_extension(path):
     """
-    Returns True if the name has an extension that is one of the supported
-    formats.
+    Returns the file extension of the specified path. Example::
+
+        >>> get_extension('a.pdf')
+        'pdf'
+        >>> get_extension('b.js.coffee')
+        'coffee'
+        >>> get_extension('c')
+        ''
+        >>> get_extension('d/e.txt')
+        'txt'
 
     """
-    parts = name.rsplit('.', 1)
-    return len(parts) == 2 and parts[1] in AUDIO_FORMATS
+    parts = os.path.basename(path).rsplit('.', 1)
+    return parts[1] if len(parts) > 1 else ''
+
+
+def is_supported_format(path):
+    """Returns True if the specified path has an extension that is one of the
+    supported formats.
+
+    """
+    return get_extension(path) in AUDIO_FORMATS
 
 
 def ffmpeg_path():
-    """Returns the path to `ffmpeg` binary."""
+    """Returns the path to ``ffmpeg`` binary."""
     return os.environ.get('FFMPEG_BIN', FFMPEG_BIN)
+
+
+class AudiodiffException(Exception):
+    """The root class of all audiodiff-related exceptions."""
+
+
+class UnsupportedFileError(AudiodiffException):
+    """Raised when you pass a non-audio file to a function that expects audio
+    files.
+
+    """
+
+
+class ExternalLibraryError(AudiodiffException):
+    """Raised when there is an error during running FFmpeg."""

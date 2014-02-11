@@ -1,24 +1,23 @@
-.PHONY: init test dist release docs clean
+.PHONY: clean cleanbuild test dist docs
 
-init:
-	pip install -r requirements.txt
+all: clean test
+
+clean:
+	find . -name '*.pyc' -exec rm -f {} \;
+	find . -name '*.pyo' -exec rm -f {} \;
+	find . -name '__pycache__' -depth -exec rm -rf {} \;
+
+cleanbuild:
+	rm -rf build
+	rm -rf dist
+	rm -rf *.egg
+	rm -rf *.egg-info
 
 test:
 	py.test
 
-dist: test clean
+dist:
 	python setup.py sdist
 
-release: test clean
-	python setup.py sdist upload
-
 docs:
-	$(MAKE) -C docs html
-
-clean:
-	rm -rf audiodiff.egg-info
-	rm -rf build
-	rm -rf dist
-	rm -rf docs/_build
-	find . -type f -name '*.pyc' -exec rm {} \;
-	find . -type d -name '__pycache__' -maxdepth 1 -exec rm -rf {} \;
+	SPHINX_RUNNING=1 $(MAKE) -C docs html

@@ -1,14 +1,19 @@
 import os
-__dir__ = os.path.dirname(__file__)
-os.chdir(os.path.join(__dir__, 'files'))
-import sys
-sys.path.insert(0, os.path.join(__dir__, '..'))
 
 import pytest
 parametrize = pytest.mark.parametrize
 
 import audiodiff
 from audiodiff import commandlinetool
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup(request):
+    def teardown():
+        os.chdir(old_cwd)
+    old_cwd = os.getcwd()
+    os.chdir(os.path.join(os.path.dirname(__file__), 'files'))
+    request.addfinalizer(teardown)
 
 
 @parametrize(('name1', 'name2', 'truth'), [
@@ -24,6 +29,7 @@ def test_equal(name1, name2, truth):
 
 
 @parametrize(('name1', 'name2', 'truth'), [
+    ('mahler.flac', 'mahler.wav', True),
     ('mahler.flac', 'mahler.m4a', True),
     ('mahler.flac', 'mahler_tagsdiff.m4a', True),
     ('mahler.flac', 'mahler.mp3', False),
@@ -36,6 +42,7 @@ def test_audio_equal(name1, name2, truth):
 
 
 @parametrize(('name1', 'name2', 'truth'), [
+    ('mahler.flac', 'mahler.wav', False),
     ('mahler.flac', 'mahler.m4a', True),
     ('mahler.flac', 'mahler_tagsdiff.m4a', False),
     ('mahler.flac', 'mahler.mp3', True),
@@ -48,13 +55,19 @@ def test_tags_equal(name1, name2, truth):
 
 
 @parametrize(('name', 'md5'), [
-    ('mahler.flac', 'db5ef0d702f66ce8b6a27395c32e1d28'),
-    ('mahler.m4a', 'db5ef0d702f66ce8b6a27395c32e1d28'),
-    ('mahler_tagsdiff.m4a', 'db5ef0d702f66ce8b6a27395c32e1d28'),
-    ('mahler.mp3', 'cc9b70f5a71d1849e85f13ba7dda0322'),
+    ('mahler.wav', '9b2450efb790f0a00642b9f7d9526f08598a3d13'),
+    ('mahler.flac', '9b2450efb790f0a00642b9f7d9526f08598a3d13'),
+    ('mahler.m4a', '9b2450efb790f0a00642b9f7d9526f08598a3d13'),
+    ('mahler_tagsdiff.m4a', '9b2450efb790f0a00642b9f7d9526f08598a3d13'),
+    ('mahler.mp3', '000a49967e00b55f85f58e8859915b12e5a4121c'),
 ])
 def test_checksum(name, md5):
     assert audiodiff.checksum(name) == md5
+
+
+def test_checksum_error():
+    with pytest.raises(audiodiff.ExternalLibraryError):
+        audiodiff.checksum('x/foo.txt')
 
 
 tags1 = {
@@ -78,6 +91,8 @@ tags2 = {
     'tracktotal': '0',
     'x_foo': 'bar',
 }
+
+
 @parametrize(('name', 'tags'), [
     ('mahler.flac', tags1),
     ('mahler.m4a', tags1),
@@ -86,6 +101,11 @@ tags2 = {
 ])
 def test_tags(name, tags):
     assert audiodiff.tags(name) == tags
+
+
+def test_tags_error():
+    with pytest.raises(audiodiff.UnsupportedFileError):
+        audiodiff.tags('x/foo.txt')
 
 
 @parametrize(('name1', 'name2', 'out', 'err'), [
@@ -115,7 +135,8 @@ def test_diff_tags(name1, name2, out, err, capsys):
     ({}, {'a': 1}, [('+', 'a', 1)]),
     ({'a': 1, 'b': 2, 'c': 3},
      {'b': 2, 'c': 5, 'd': 7},
-     [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)]),
+     [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5),
+      ('+', 'd', 7)]),
 ])
 def test_compare_dicts(dict1, dict2, rv):
     assert commandlinetool._compare_dicts(dict1, dict2) == rv
@@ -123,11 +144,13 @@ def test_compare_dicts(dict1, dict2, rv):
 
 @parametrize(('args', 'return_code', 'out', 'err'), [
     (['mahler.flac', 'mahler.m4a'], 0, '', ''),
-    (['mahler.flac', 'mahler.m4a', '-s'], 0, """Audio streams in mahler.flac and mahler.m4a are identical
+    (['mahler.flac', 'mahler.m4a', '-s'], 0,
+     """Audio streams in mahler.flac and mahler.m4a are identical
 Tags in mahler.flac and mahler.m4a are identical
 """, ''),
     (['mahler.flac', 'mahler_tagsdiff.m4a', '-a'], 0, '', ''),
-    (['mahler.flac', 'mahler_tagsdiff.m4a', '-t', '-q'], 1, """Tags in mahler.flac and mahler_tagsdiff.m4a differ
+    (['mahler.flac', 'mahler_tagsdiff.m4a', '-t', '-q'], 1,
+     """Tags in mahler.flac and mahler_tagsdiff.m4a differ
 """, ''),
     (['mahler.flac', 'mahler.mp3', '--tags'], 0, '', ''),
     (['y', 'z'], 0, '', ''),
@@ -155,7 +178,8 @@ Audio streams in x/d.mp3 and y/d.flac differ
 Only in x: hello
 Only in y: world
 """, ''),
-    (['x', 'y', '-s'], 1, """Audio streams in x/a.flac and y/a.m4a are identical
+    (['x', 'y', '-s'], 1,
+     """Audio streams in x/a.flac and y/a.m4a are identical
 --- x/a.flac
 +++ y/a.m4a
  album: Symphony No. 1 in D
@@ -191,7 +215,8 @@ Files x/foo.txt and y/foo.txt are identical
 Only in x: hello
 Only in y: world
 """, ''),
-    (['x', 'y', '--report-identical-files', '-q'], 1, """Audio streams in x/a.flac and y/a.m4a are identical
+    (['x', 'y', '--report-identical-files', '-q'], 1,
+     """Audio streams in x/a.flac and y/a.m4a are identical
 Tags in x/a.flac and y/a.m4a differ
 Files x/animal and y/animal differ
 Audio streams in x/b.m4a and y/b.flac are identical
@@ -213,7 +238,8 @@ Files x/foo.txt and y/foo.txt are identical
 Only in x: hello
 Only in y: world
 """, ''),
-    (['mahler.flac', 'x'], 2, '', """audiodiff: No such file or directory: 'x/mahler.flac'
+    (['mahler.flac', 'x'], 2, '',
+     """audiodiff: No such file or directory: 'x/mahler.flac'
 """),
     (['w', 'z'], 2, '', """audiodiff: No such file or directory: 'w'
 """),
