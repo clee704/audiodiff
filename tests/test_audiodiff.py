@@ -108,6 +108,16 @@ def test_tags_error():
         audiodiff.tags('x/foo.txt')
 
 
+@parametrize(('path', 'extension'), [
+    ('a.pdf', 'pdf'),
+    ('b.js.coffee', 'coffee'),
+    ('c', ''),
+    ('d/e.txt', 'txt'),
+])
+def test_get_extension(path, extension):
+    assert audiodiff.get_extension(path) == extension
+
+
 @parametrize(('name1', 'name2', 'out', 'err'), [
     ('mahler.flac', 'mahler.m4a', '', ''),
     ('mahler.flac', 'mahler.mp3', '', ''),
