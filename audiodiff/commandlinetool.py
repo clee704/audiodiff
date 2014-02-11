@@ -75,41 +75,43 @@ def main_func(args=None):
         return 130
 
 
-def diff_checked(p1, p2, options):
+def diff_checked(path1, path2, options):
     """Calls :func:`diff_recurse` and handles exceptions if raised."""
     try:
-        return diff_recurse(p1, p2, options)
+        return diff_recurse(path1, path2, options)
     except IOError as e:
         msg = '{0}: {1}: {2}'.format(parser.prog, e.strerror, repr(e.filename))
         print(msg, file=sys.stderr)
         return 2
     except Exception as e:
         msg = '{0}: an error occurred while processing {1} and {2}'.format(
-            parser.prog, p1, p2)
+            parser.prog, path1, path2)
         print(msg, file=sys.stderr)
         traceback.print_exc()
         return 2
 
 
-def diff_recurse(p1, p2, options):
+def diff_recurse(path1, path2, options):
     """Recursively compares files in the specified paths."""
-    type1 = _get_type(p1)
-    type2 = _get_type(p2)
+    type1 = _get_type(path1)
+    type2 = _get_type(path2)
     if type1 == 'file' and type2 == 'file':
-        return diff_files(p1, p2, options)
+        return diff_files(path1, path2, options)
     elif type1 == 'dir' and type2 == 'dir':
-        return diff_dirs(p1, p2, options)
+        return diff_dirs(path1, path2, options)
     elif type1 == 'file' and type2 == 'dir':
-        return diff_files(p1, os.path.join(p2, os.path.basename(p1)), options)
+        return diff_files(path1, os.path.join(path2, os.path.basename(path1)),
+                          options)
     elif type1 == 'dir' and type2 == 'file':
-        return diff_files(os.path.join(p2, os.path.basename(p1)), p2, options)
+        return diff_files(os.path.join(path2, os.path.basename(path1)), path2,
+                          options)
     # errors
     if type1 == 'nonexistent':
-        msg = "No such file or directory: {0}".format(repr(p1))
+        msg = "No such file or directory: {0}".format(repr(path1))
     elif type2 == 'nonexistent':
-        msg = "No such file or directory: {0}".format(repr(p2))
+        msg = "No such file or directory: {0}".format(repr(path2))
     else:
-        msg = 'Unknown files: {0} and/or {1}'.format(repr(p1), repr(p2))
+        msg = 'Unknown files: {0} and/or {1}'.format(repr(path1), repr(path2))
     print('{0}: {1}'.format(parser.prog, msg), file=sys.stderr)
     return 2
 
@@ -123,41 +125,42 @@ def _get_type(name):
         return 'nonexistent'
 
 
-def diff_files(p1, p2, options):
+def diff_files(path1, path2, options):
     """Compares the two files and prints the results."""
-    if is_supported_format(p1) and is_supported_format(p2):
+    if is_supported_format(path1) and is_supported_format(path2):
         if options.streams:
-            return diff_streams(p1, p2, options.verbose, options.ffmpeg_bin)
+            return diff_streams(path1, path2, options.verbose,
+                                options.ffmpeg_bin)
         elif options.tags:
-            return diff_tags(p1, p2, options.verbose, options.brief)
+            return diff_tags(path1, path2, options.verbose, options.brief)
         else:
-            return max(diff_streams(p1, p2, options.verbose,
+            return max(diff_streams(path1, path2, options.verbose,
                                     options.ffmpeg_bin),
-                       diff_tags(p1, p2, options.verbose, options.brief))
+                       diff_tags(path1, path2, options.verbose, options.brief))
     else:
-        return diff_binary(p1, p2, options.verbose)
+        return diff_binary(path1, path2, options.verbose)
 
 
-def diff_dirs(p1, p2, options):
+def diff_dirs(path1, path2, options):
     """Compares the two directories and prints the results."""
     ret = 0
-    cnames1 = _cnames(p1)
-    cnames2 = _cnames(p2)
+    cnames1 = _cnames(path1)
+    cnames2 = _cnames(path2)
     for cname in sorted(set(cnames1.iterkeys()) | set(cnames2.iterkeys())):
         names1 = cnames1.get(cname)
         names2 = cnames2.get(cname)
         if not names1:
             for name in names2:
-                print('Only in {0}: {1}'.format(p2, name))
+                print('Only in {0}: {1}'.format(path2, name))
                 ret = max(ret, 1)
         elif not names2:
             for name in names1:
-                print('Only in {0}: {1}'.format(p1, name))
+                print('Only in {0}: {1}'.format(path1, name))
                 ret = max(ret, 1)
         else:
             for name1, name2 in itertools.product(names1, names2):
-                np1 = os.path.join(p1, name1)
-                np2 = os.path.join(p2, name2)
+                np1 = os.path.join(path1, name1)
+                np2 = os.path.join(path2, name2)
                 ret = max(ret, diff_checked(np1, np2, options))
     return ret
 
@@ -175,17 +178,18 @@ def _cnames(d):
     return cnames
 
 
-def diff_streams(p1, p2, verbose=False, ffmpeg_bin=None):
+def diff_streams(path1, path2, verbose=False, ffmpeg_bin=None):
     """Prints whether the two audio files' streams differ or are identical."""
-    if not audio_equal(p1, p2, ffmpeg_bin):
-        print('Audio streams in {0} and {1} differ'.format(p1, p2))
+    if not audio_equal(path1, path2, ffmpeg_bin):
+        print('Audio streams in {0} and {1} differ'.format(path1, path2))
         return 1
     elif verbose:
-        print('Audio streams in {0} and {1} are identical'.format(p1, p2))
+        print('Audio streams in {0} and {1} are identical'.format(path1,
+                                                                  path2))
     return 0
 
 
-def diff_tags(p1, p2, verbose=False, brief=False):
+def diff_tags(path1, path2, verbose=False, brief=False):
     """Prints whether the two audio files' tags differ or are identical."""
     if sys.stdout.isatty() and termcolor is not None:
         colored = termcolor.colored
@@ -193,19 +197,19 @@ def diff_tags(p1, p2, verbose=False, brief=False):
     else:
         colored = lambda *options: options[0]
         cprint = print
-    tags1 = tags(p1)
-    tags2 = tags(p2)
+    tags1 = tags(path1)
+    tags2 = tags(path2)
     if tags1 == tags2:
         if verbose:
-            print('Tags in {0} and {1} are identical'.format(p1, p2))
+            print('Tags in {0} and {1} are identical'.format(path1, path2))
         return 0
     if brief:
-        print('Tags in {0} and {1} differ'.format(p1, p2))
+        print('Tags in {0} and {1} differ'.format(path1, path2))
         return 1
     data = _compare_dicts(tags1, tags2)
     colors = {'-': 'red', '+': 'green', ' ': None}
-    cprint(colored('--- {0}'.format(p1), colors['-']))
-    cprint(colored('+++ {0}'.format(p2), colors['+']))
+    cprint(colored('--- {0}'.format(path1), colors['-']))
+    cprint(colored('+++ {0}'.format(path2), colors['+']))
     for sign, key, value in data:
         if sign == ' ' and not verbose:
             continue
@@ -226,7 +230,8 @@ def _compare_dicts(dict1, dict2):
     Examples::
 
         >>> compare_dicts({'a': 1, 'b': 2, 'c': 3}, {'b': 2, 'c': 5, 'd': 7})
-        [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5), ('+', 'd', 7)]
+        [('-', 'a', 1), (' ', 'b', 2), ('-', 'c', 3), ('+', 'c', 5),
+         ('+', 'd', 7)]
 
     """
     keys1 = set(dict1.iterkeys())
@@ -246,11 +251,11 @@ def _compare_dicts(dict1, dict2):
     return data
 
 
-def diff_binary(p1, p2, verbose=False):
+def diff_binary(path1, path2, verbose=False):
     """Prints whether the two non-audio files differ or are identical."""
-    if not equal(p1, p2):
-        print('Files {0} and {1} differ'.format(p1, p2))
+    if not equal(path1, path2):
+        print('Files {0} and {1} differ'.format(path1, path2))
         return 1
     elif verbose:
-        print('Files {0} and {1} are identical'.format(p1, p2))
+        print('Files {0} and {1} are identical'.format(path1, path2))
     return 0
