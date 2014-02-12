@@ -7,6 +7,7 @@
 """
 import argparse
 import itertools
+import locale
 import operator
 import os
 import sys
@@ -26,12 +27,15 @@ else:
     colored = lambda *options: options[0]
 
 
-#: Default encoding for output. Encoding resolution is done as follows:
+#: Fallback encoding for output. Encoding resolution is done as follows:
 #:
 #: - :data:`sys.stdout.encoding` (or :data:`sys.stderr.encoding`)
 #: - ``PYTHONIOENCODING`` environment variable
-#: - :data:`DEFAULT_ENCODING`
-DEFAULT_ENCODING = 'UTF-8'
+#: - Second item of the return value of :func:`locale.getdefaultlocale`
+#: - :data:`FALLBACK_ENCODING`
+FALLBACK_ENCODING = 'UTF-8'
+
+LOCALE_ENCODING = locale.getdefaultlocale()[1]
 
 
 #: An :class:`argparse.ArgumentParser`
@@ -97,7 +101,7 @@ def diff_checked(path1, path2, options):
         return 2
     except Exception as e:
         _print_error('an error occurred while processing {0} and {1}'.format(
-            path1, path2))
+            repr(path1), repr(path2)))
         traceback.print_exc()
         return 2
 
@@ -162,11 +166,13 @@ def diff_dirs(path1, path2, options):
         names2 = cnames2.get(cname)
         if not names1:
             for name in names2:
-                _print('Only in {0}: {1}'.format(path2, name))
+                _print(u'Only in {0}: {1}'.format(_decode_path(path2),
+                                                  _decode_path(name)))
                 ret = max(ret, 1)
         elif not names2:
             for name in names1:
-                _print('Only in {0}: {1}'.format(path1, name))
+                _print(u'Only in {0}: {1}'.format(_decode_path(path1),
+                                                  _decode_path(name)))
                 ret = max(ret, 1)
         else:
             for name1, name2 in itertools.product(names1, names2):
@@ -192,11 +198,12 @@ def _cnames(d):
 def diff_streams(path1, path2, verbose=False, ffmpeg_bin=None):
     """Prints whether the two audio files' streams differ or are identical."""
     if not audio_equal(path1, path2, ffmpeg_bin):
-        _print('Audio streams in {0} and {1} differ'.format(path1, path2))
+        _print(u'Audio streams in {0} and {1} differ'.format(
+            _decode_path(path1), _decode_path(path2)))
         return 1
     elif verbose:
-        _print('Audio streams in {0} and {1} are identical'.format(path1,
-                                                                   path2))
+        _print(u'Audio streams in {0} and {1} are identical'.format(
+            _decode_path(path1), _decode_path(path2)))
     return 0
 
 
@@ -206,19 +213,22 @@ def diff_tags(path1, path2, verbose=False, brief=False):
     tags2 = tags(path2)
     if tags1 == tags2:
         if verbose:
-            _print('Tags in {0} and {1} are identical'.format(path1, path2))
+            _print(u'Tags in {0} and {1} are identical'.format(
+                _decode_path(path1), _decode_path(path2)))
         return 0
     if brief:
-        _print('Tags in {0} and {1} differ'.format(path1, path2))
+        _print(u'Tags in {0} and {1} differ'.format(
+            _decode_path(path1), _decode_path(path2)))
         return 1
     data = _compare_dicts(tags1, tags2)
     colors = {'-': 'red', '+': 'green', ' ': None}
-    _print(colored('--- {0}'.format(path1), colors['-']))
-    _print(colored('+++ {0}'.format(path2), colors['+']))
+    _print(colored(u'--- {0}'.format(_decode_path(path1)), colors['-']))
+    _print(colored(u'+++ {0}'.format(_decode_path(path2)), colors['+']))
     for sign, key, value in data:
         if sign == ' ' and not verbose:
             continue
-        value = unicode(value)
+        if not isinstance(value, unicode):
+            value = repr(value)
         if len(value) > 100:
             value = value[:92] + '...' + value[-5:]
         _print(colored(u'{0}{1}: {2}'.format(sign, key, value), colors[sign]))
@@ -259,10 +269,12 @@ def _compare_dicts(dict1, dict2):
 def diff_binary(path1, path2, verbose=False):
     """Prints whether the two non-audio files differ or are identical."""
     if not equal(path1, path2):
-        _print('Files {0} and {1} differ'.format(path1, path2))
+        _print(u'Files {0} and {1} differ'.format(_decode_path(path1),
+                                                  _decode_path(path2)))
         return 1
     elif verbose:
-        _print('Files {0} and {1} are identical'.format(path1, path2))
+        _print(u'Files {0} and {1} are identical'.format(_decode_path(path1),
+                                                         _decode_path(path2)))
     return 0
 
 
@@ -279,4 +291,8 @@ def _print_error(message):
 
 def _encoding_for(file):
     return (file.encoding or os.environ.get('PYTHONIOENCODING') or
-            DEFAULT_ENCODING)
+            LOCALE_ENCODING or FALLBACK_ENCODING)
+
+
+def _decode_path(path):
+    return path.decode(LOCALE_ENCODING or FALLBACK_ENCODING, 'replace')

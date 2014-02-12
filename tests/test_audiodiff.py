@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from unicodedata import normalize
 
 import pytest
 parametrize = pytest.mark.parametrize
@@ -177,8 +178,9 @@ Tags in mahler.flac and mahler.m4a are identical
 """, ''),
     (['mahler.flac', 'mahler.mp3', '--tags'], 0, '', ''),
     (['y', 'z'], 0, '', ''),
-    (['x', 'y'], 1, """--- x/a.flac
-+++ y/a.m4a
+    (['x', 'y'], 1, normalize('NFC', u"""Files x/animal and y/animal differ
+--- x/ä.flac
++++ y/ä.m4a
 -composer: Claudio Abbado / Berlin Ph
 -composersortorder: Abbado, Claudio / Berlin Ph
 -genre: A/Orchestral/Symphony
@@ -188,23 +190,24 @@ Tags in mahler.flac and mahler.m4a are identical
 -tracktotal: 4
 +tracktotal: 0
 +x_foo: bar
-Files x/animal and y/animal differ
 Only in x: b.txt
 Audio streams in x/d.mp3 and y/d.flac differ
 Only in x: hello
 Only in y: world
-""", ''),
-    (['x', 'y', '--brief'], 1, """Tags in x/a.flac and y/a.m4a differ
-Files x/animal and y/animal differ
+"""), ''),
+    (['x', 'y', '--brief'], 1,
+     normalize('NFC', u"""Files x/animal and y/animal differ
+Tags in x/ä.flac and y/ä.m4a differ
 Only in x: b.txt
 Audio streams in x/d.mp3 and y/d.flac differ
 Only in x: hello
 Only in y: world
-""", ''),
+"""), ''),
     (['x', 'y', '-s'], 1,
-     """Audio streams in x/a.flac and y/a.m4a are identical
---- x/a.flac
-+++ y/a.m4a
+     normalize('NFC', u"""Files x/animal and y/animal differ
+Audio streams in x/ä.flac and y/ä.m4a are identical
+--- x/ä.flac
++++ y/ä.m4a
  album: Symphony No. 1 in D
  artist: Mahler
 -composer: Claudio Abbado / Berlin Ph
@@ -218,7 +221,6 @@ Only in y: world
 -tracktotal: 4
 +tracktotal: 0
 +x_foo: bar
-Files x/animal and y/animal differ
 Audio streams in x/b.m4a and y/b.flac are identical
 Tags in x/b.m4a and y/b.flac are identical
 Audio streams in x/b.m4a and y/b.m4a are identical
@@ -237,11 +239,11 @@ Tags in x/d.mp3 and y/d.flac are identical
 Files x/foo.txt and y/foo.txt are identical
 Only in x: hello
 Only in y: world
-""", ''),
+"""), ''),
     (['x', 'y', '--report-identical-files', '-q'], 1,
-     """Audio streams in x/a.flac and y/a.m4a are identical
-Tags in x/a.flac and y/a.m4a differ
-Files x/animal and y/animal differ
+     normalize('NFC', u"""Files x/animal and y/animal differ
+Audio streams in x/ä.flac and y/ä.m4a are identical
+Tags in x/ä.flac and y/ä.m4a differ
 Audio streams in x/b.m4a and y/b.flac are identical
 Tags in x/b.m4a and y/b.flac are identical
 Audio streams in x/b.m4a and y/b.m4a are identical
@@ -260,7 +262,7 @@ Tags in x/d.mp3 and y/d.flac are identical
 Files x/foo.txt and y/foo.txt are identical
 Only in x: hello
 Only in y: world
-""", ''),
+"""), ''),
     (['mahler.flac', 'x'], 2, '',
      """audiodiff: No such file or directory: 'x/mahler.flac'
 """),
@@ -269,4 +271,6 @@ Only in y: world
 ])
 def test_main_func(args, return_code, out, err, capsys):
     assert commandlinetool.main_func(args) == return_code
-    assert capsys.readouterr() == (out, err)
+    actual = capsys.readouterr()
+    assert normalize('NFC', actual[0]) == out
+    assert normalize('NFC', actual[1]) == err
