@@ -5,6 +5,35 @@ audiodiff is a small Python library for comparing audio files. Two audio flies
 are considered equal if they have the same audio streams and normalized tags.
 
 
+Dependencies
+------------
+
+audiodiff requires FFmpeg to be installed in your system. The path is
+``ffmpeg`` by default, but you can change it by following ways (later rules
+take precedence over earlier ones):
+
+1. ``audiodiff.FFMPEG_BIN`` module property
+2. ``FFMPEG_BIN`` environment variable
+3. ``--ffmpeg_bin`` flag (commandline tool only)
+
+You can install ``ffmpeg`` with following commands.
+
+- Debian/Ubuntu: ``sudo apt-get install ffmpeg libffmpeg-fmt-all``
+- OS X (with Homebrew_): ``brew install ffmpeg``
+
+.. _Homebrew: http://brew.sh
+
+
+Install
+-------
+
+audiodiff can be installed with ``pip``::
+
+    $ pip install audiodiff
+
+This will also install the commandline tool. Run ``audiodiff -h`` for help.
+
+
 Examples
 --------
 
@@ -80,35 +109,6 @@ being compared are equal while they are not.
 
 
 .. _mutagenwrapper: https://mutagenwrapper.readthedocs.org/en/latest/
-
-
-Install
--------
-
-audiodiff can be installed with ``pip``::
-
-    $ pip install audiodiff
-
-This will also install the commandline tool. Run ``audiodiff -h`` for help.
-
-
-Dependencies
-------------
-
-audiodiff requires FFmpeg to be installed in your system. The path is
-``ffmpeg`` by default, but you can change it by following ways (later rules
-take precedence over earlier ones):
-
-1. ``audiodiff.FFMPEG_BIN`` module property
-2. ``FFMPEG_BIN`` environment variable
-3. ``--ffmpeg_bin`` flag (commandline tool only)
-
-You can install ``ffmpeg`` with following commands.
-
-- Debian/Ubuntu: ``sudo apt-get install ffmpeg libffmpeg-fmt-all``
-- OS X (with Homebrew_): ``brew install ffmpeg``
-
-.. _Homebrew: http://brew.sh
 
 
 Changes
