@@ -16,7 +16,7 @@ cleanbuild:
 test:
 	py.test
 
-dist:
+dist: cleanbuild
 	python setup.py sdist
 
 docs:
