@@ -31,7 +31,7 @@ FFMPEG_BIN = 'ffmpeg'
 def equal(name1, name2, ffmpeg_bin=None):
     """Compares two files and returns ``True`` if they are considered equal.
     For audio files, they are equal if their uncompressed audio streams and
-    tags (reported by mutagenwrapper, except for ``encodedby`` which is
+    tags (as reported by mutagenwrapper, except for ``encodedby`` which is
     ignored) are equal. For non-audio files, they must have the same content to
     be equal.
 
@@ -53,17 +53,18 @@ def audio_equal(name1, name2, ffmpeg_bin=None):
 
 def tags_equal(name1, name2):
     """Compares two audio files and returns ``True`` if they have the same tags
-    reported by mutagenwrapper. It ignores ``encodedby`` tag.
+    reported by mutagenwrapper.
 
     """
     return tags(name1) == tags(name2)
 
 
 def checksum(name, ffmpeg_bin=None):
-    """Returns an SHA1 checksum of the uncompressed WAVE data stream of the
-    audio file. Note that the checksums for the same file may differ across
-    different platforms if the file is lossy due to floating point problems and
-    different implementations of decoders.
+    """Returns an SHA1 checksum of the uncompressed PCM (signed 24-bit
+    little-endian) data stream of the audio file. Note that the checksums for
+    the same file may differ across different platforms if the file format is
+    lossy, due to floating point problems and different implementations of
+    decoders.
 
     """
     if ffmpeg_bin is None:
@@ -109,11 +110,11 @@ def _compute_sha1(f):
 
 
 def tags(name):
-    """Returns tags in the audio file as a ``dict``. It converts tags returned
-    by ``mutagenwrapper.read_tags`` by unwrapping single valued items
-    (i.e. without enclosing lists) and removing ``encodedby`` tag. To read
-    unmodified, but still normalized tags, use ``mutagenwrapper.read_tags``.
-    For unmodified and unnormalized tags, use the ``mutagen`` library.
+    """Returns tags in the audio file as a :class:`dict`. Its return value is
+    the same as ``mutagenwrapper.read_tags``, except that single valued items
+    (lists with length 1) are unwrapped and ``encodedby`` tag is removed. To
+    read unmodified, but still normalized tags, use
+    ``mutagenwrapper.read_tags``. For raw tags, use the ``mutagen`` library.
 
     """
     if mutagenwrapper is None:
@@ -164,7 +165,7 @@ def is_supported_format(path):
 
 
 def ffmpeg_path():
-    """Returns the path to ``ffmpeg`` binary."""
+    """Returns the path to FFmpeg binary."""
     return os.environ.get('FFMPEG_BIN', FFMPEG_BIN)
 
 
