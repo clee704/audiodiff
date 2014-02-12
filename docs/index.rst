@@ -18,7 +18,7 @@ take precedence over earlier ones):
 
 You can install ``ffmpeg`` with following commands.
 
-- Debian/Ubuntu: ``sudo apt-get install ffmpeg libffmpeg-fmt-all``
+- Debian/Ubuntu: ``sudo apt-get install ffmpeg``
 - OS X (with Homebrew_): ``brew install ffmpeg``
 
 .. _Homebrew: http://brew.sh
