@@ -5,7 +5,6 @@
    This module contains functions for the ``audiodiff`` commandline tool.
 
 """
-from __future__ import print_function
 import argparse
 import itertools
 import operator
@@ -21,7 +20,21 @@ except ImportError:
 from . import __version__, is_supported_format, equal, audio_equal, tags
 
 
-#: A :class:`argparse.ArgumentParser`
+if sys.stdout.isatty() and termcolor is not None:
+    colored = termcolor.colored
+else:
+    colored = lambda *options: options[0]
+
+
+#: Default encoding for output. Encoding resolution is done as follows:
+#:
+#: - :data:`sys.stdout.encoding` (or :data:`sys.stderr.encoding`)
+#: - ``PYTHONIOENCODING`` environment variable
+#: - :data:`DEFAULT_ENCODING`
+DEFAULT_ENCODING = 'UTF-8'
+
+
+#: An :class:`argparse.ArgumentParser`
 parser = argparse.ArgumentParser(
     prog='audiodiff',
     description="""
@@ -80,13 +93,11 @@ def diff_checked(path1, path2, options):
     try:
         return diff_recurse(path1, path2, options)
     except IOError as e:
-        msg = '{0}: {1}: {2}'.format(parser.prog, e.strerror, repr(e.filename))
-        print(msg, file=sys.stderr)
+        _print_error('{0}: {1}'.format(e.strerror, repr(e.filename)))
         return 2
     except Exception as e:
-        msg = '{0}: an error occurred while processing {1} and {2}'.format(
-            parser.prog, path1, path2)
-        print(msg, file=sys.stderr)
+        _print_error('an error occurred while processing {0} and {1}'.format(
+            path1, path2))
         traceback.print_exc()
         return 2
 
@@ -112,7 +123,7 @@ def diff_recurse(path1, path2, options):
         msg = "No such file or directory: {0}".format(repr(path2))
     else:
         msg = 'Unknown files: {0} and/or {1}'.format(repr(path1), repr(path2))
-    print('{0}: {1}'.format(parser.prog, msg), file=sys.stderr)
+    _print_error(msg)
     return 2
 
 
@@ -151,11 +162,11 @@ def diff_dirs(path1, path2, options):
         names2 = cnames2.get(cname)
         if not names1:
             for name in names2:
-                print('Only in {0}: {1}'.format(path2, name))
+                _print('Only in {0}: {1}'.format(path2, name))
                 ret = max(ret, 1)
         elif not names2:
             for name in names1:
-                print('Only in {0}: {1}'.format(path1, name))
+                _print('Only in {0}: {1}'.format(path1, name))
                 ret = max(ret, 1)
         else:
             for name1, name2 in itertools.product(names1, names2):
@@ -181,42 +192,36 @@ def _cnames(d):
 def diff_streams(path1, path2, verbose=False, ffmpeg_bin=None):
     """Prints whether the two audio files' streams differ or are identical."""
     if not audio_equal(path1, path2, ffmpeg_bin):
-        print('Audio streams in {0} and {1} differ'.format(path1, path2))
+        _print('Audio streams in {0} and {1} differ'.format(path1, path2))
         return 1
     elif verbose:
-        print('Audio streams in {0} and {1} are identical'.format(path1,
-                                                                  path2))
+        _print('Audio streams in {0} and {1} are identical'.format(path1,
+                                                                   path2))
     return 0
 
 
 def diff_tags(path1, path2, verbose=False, brief=False):
     """Prints whether the two audio files' tags differ or are identical."""
-    if sys.stdout.isatty() and termcolor is not None:
-        colored = termcolor.colored
-        cprint = termcolor.cprint
-    else:
-        colored = lambda *options: options[0]
-        cprint = print
     tags1 = tags(path1)
     tags2 = tags(path2)
     if tags1 == tags2:
         if verbose:
-            print('Tags in {0} and {1} are identical'.format(path1, path2))
+            _print('Tags in {0} and {1} are identical'.format(path1, path2))
         return 0
     if brief:
-        print('Tags in {0} and {1} differ'.format(path1, path2))
+        _print('Tags in {0} and {1} differ'.format(path1, path2))
         return 1
     data = _compare_dicts(tags1, tags2)
     colors = {'-': 'red', '+': 'green', ' ': None}
-    cprint(colored('--- {0}'.format(path1), colors['-']))
-    cprint(colored('+++ {0}'.format(path2), colors['+']))
+    _print(colored('--- {0}'.format(path1), colors['-']))
+    _print(colored('+++ {0}'.format(path2), colors['+']))
     for sign, key, value in data:
         if sign == ' ' and not verbose:
             continue
-        value = str(value)
+        value = unicode(value)
         if len(value) > 100:
             value = value[:92] + '...' + value[-5:]
-        cprint(colored('{0}{1}: {2}'.format(sign, key, value), colors[sign]))
+        _print(colored(u'{0}{1}: {2}'.format(sign, key, value), colors[sign]))
     return 1
 
 
@@ -254,8 +259,24 @@ def _compare_dicts(dict1, dict2):
 def diff_binary(path1, path2, verbose=False):
     """Prints whether the two non-audio files differ or are identical."""
     if not equal(path1, path2):
-        print('Files {0} and {1} differ'.format(path1, path2))
+        _print('Files {0} and {1} differ'.format(path1, path2))
         return 1
     elif verbose:
-        print('Files {0} and {1} are identical'.format(path1, path2))
+        _print('Files {0} and {1} are identical'.format(path1, path2))
     return 0
+
+
+# Due to a bug in Sphinx, we cannot use from __future__ import print_function
+# https://bitbucket.org/birkenfeld/sphinx/issue/1385/sphinxpycodemoduleanalyzer-fails-with
+def _print(message):
+    print message.encode(_encoding_for(sys.stdout), 'replace')
+
+
+def _print_error(message):
+    print >>sys.stderr, '{0}: {1}'.format(
+        parser.prog, message.encode(_encoding_for(sys.stderr), 'replace'))
+
+
+def _encoding_for(file):
+    return (file.encoding or os.environ.get('PYTHONIOENCODING') or
+            DEFAULT_ENCODING)

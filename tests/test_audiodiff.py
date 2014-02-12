@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 import os
+import sys
 
 import pytest
 parametrize = pytest.mark.parametrize
@@ -137,6 +139,17 @@ def test_get_extension(path, extension):
 def test_diff_tags(name1, name2, out, err, capsys):
     commandlinetool.diff_tags(name1, name2)
     assert capsys.readouterr() == (out, err)
+
+
+def test_diff_tags_unicode(capsys):
+    commandlinetool.diff_tags('mahler.flac', 'unicode.flac')
+    out, err = capsys.readouterr()
+    assert out == u"""--- mahler.flac
++++ unicode.flac
+-title: III. Feierlich und gemessen, ohne zu schleppen
++title: II. Kräftig bewegt, doch nicht zu schnell
+"""
+    assert err == ''
 
 
 @parametrize(('dict1', 'dict2', 'rv'), [
