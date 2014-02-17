@@ -1,0 +1,14 @@
+Version 0.3
+~~~~~~~~~~~
+
+(release date to be announced)
+
+- Improved Unicode support for tags and filenames.
+- Change the stream checksum algorithm from MD5 to SHA1.
+- Support Python 2.6 and PyPy, in addition to Python 2.7.
+
+
+Version 0.2
+~~~~~~~~~~~
+
+Initial release on September 10th 2013.

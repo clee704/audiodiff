@@ -1,0 +1,16 @@
+# It contains all packages that is required or useful when developing
+# audiodiff. If you just want to use the app, you don't have to install
+# these packages. Type `python setup.py install` and you are ready.
+
+mutagenwrapper == 0.0.5
+termcolor == 1.1.0
+
+pytest == 2.5.2
+pytest-cov == 1.6
+pytest-pep8 == 1.0.5
+
+tox == 1.7.0
+virtualenv == 1.11.2
+
+Sphinx == 1.2.1
+sphinx-rtd-theme == 0.1.5
