@@ -1,7 +1,7 @@
 Version 0.3
 ~~~~~~~~~~~
 
-(release date to be announced)
+Released on February 17th 2014.
 
 - Improved Unicode support for tags and filenames.
 - Change the stream checksum algorithm from MD5 to SHA1.
