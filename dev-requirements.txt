@@ -10,7 +10,7 @@ pytest-cov == 1.6
 pytest-pep8 == 1.0.5
 
 tox == 1.7.0
-virtualenv == 1.11.2
+virtualenv == 20.26.6
 
 Sphinx == 1.2.1
 sphinx-rtd-theme == 0.1.5
